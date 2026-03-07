@@ -9,7 +9,6 @@ export interface CachedAttendee {
   pin: string;
   name: string;
   email: string;
-  ticketTier: string;
   checkedIn: boolean;
   stampsCollected: string[];
   totalFoodRedemptions: number;

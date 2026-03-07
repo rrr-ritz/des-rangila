@@ -9,7 +9,6 @@ interface GooglePassData {
   qrPayload: string;
   name: string;
   pin: string;
-  ticketTier: string;
   stampsCollected: string[];
 }
 
@@ -59,15 +58,10 @@ export async function ensureWalletClass(): Promise<void> {
         cardTemplateOverride: {
           cardRowTemplateInfos: [
             {
-              twoItems: {
-                startItem: {
+              oneItem: {
+                item: {
                   firstValue: {
                     fields: [{ fieldPath: "object.textModulesData['pin']" }],
-                  },
-                },
-                endItem: {
-                  firstValue: {
-                    fields: [{ fieldPath: "object.textModulesData['tier']" }],
                   },
                 },
               },
@@ -121,7 +115,6 @@ export async function createWalletObject(data: GooglePassData): Promise<string> 
     textModulesData: [
       { id: "name", header: "ATTENDEE", body: data.name },
       { id: "pin", header: "PIN", body: data.pin },
-      { id: "tier", header: "TICKET", body: data.ticketTier.toUpperCase() },
       {
         id: "stamps",
         header: "TABLES VISITED",
@@ -219,7 +212,6 @@ export function generateSaveUrl(data: GooglePassData): string {
           textModulesData: [
             { id: "name", header: "ATTENDEE", body: data.name },
             { id: "pin", header: "PIN", body: data.pin },
-            { id: "tier", header: "TICKET", body: data.ticketTier.toUpperCase() },
             {
               id: "stamps",
               header: "TABLES VISITED",

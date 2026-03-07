@@ -14,7 +14,7 @@ export default function PrivacyPage() {
           </h2>
           <p>
             When you register for Des Rangila, we collect your name and email
-            address (provided during ticket purchase). At the event, we generate
+            address (provided during passport purchase). At the event, we generate
             a unique PIN and QR code for your digital passport. Volunteers
             provide a phone number for authentication.
           </p>
@@ -22,12 +22,12 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="text-lg font-semibold text-foreground">
-            Face Recognition (Optional)
+            Face Recognition
           </h2>
           <p>
-            At check-in, you may opt in to face recognition so event
-            photographer photos can be automatically linked to your profile. If
-            you consent, we capture a selfie and extract a numeric face
+            At check-in, we take a quick profile photo so event
+            photographer photos can be automatically linked to your profile. We
+            capture a selfie and extract a numeric face
             descriptor (a 128-number array). This descriptor cannot be used to
             reconstruct your face. The selfie is discarded after processing.
           </p>

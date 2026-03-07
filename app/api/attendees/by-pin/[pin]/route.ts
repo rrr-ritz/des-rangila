@@ -60,7 +60,6 @@ export async function GET(
   return NextResponse.json({
     id: doc.id,
     name: data.name,
-    ticketTier: data.ticketTier,
     checkedIn: data.checkedIn,
     stampsCollected: data.stampsCollected,
     totalFoodRedemptions: data.totalFoodRedemptions,

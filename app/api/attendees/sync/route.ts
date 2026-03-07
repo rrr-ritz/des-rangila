@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
       qrPayload: d.qrPayload,
       pin: d.pin,
       name: d.name,
-      ticketTier: d.ticketTier,
       checkedIn: d.checkedIn,
       stampsCollected: d.stampsCollected,
       totalFoodRedemptions: d.totalFoodRedemptions,

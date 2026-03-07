@@ -2,7 +2,6 @@ import { Timestamp } from "firebase/firestore";
 
 // === Type Aliases ===
 
-export type TicketTier = "general" | "vip";
 export type StationType =
   | "activity"
   | "food"
@@ -22,6 +21,7 @@ export type AuditAction =
   | "inventory.depleted"
   | "photo.uploaded"
   | "admin.import_attendees"
+  | "walkin.created"
   | "system.error";
 
 // === Collection: attendees ===
@@ -32,7 +32,6 @@ export interface Attendee {
   qrPayload: string;
   name: string;
   email: string;
-  ticketTier: TicketTier;
   checkedIn: boolean;
   checkedInAt: Timestamp | null;
   faceDescriptor: number[] | null;

@@ -13,7 +13,6 @@ interface AttendeeRow {
   name: string;
   email: string;
   pin: string;
-  ticketTier: string;
   checkedIn: boolean;
   stampsCollected: string[];
   totalFoodRedemptions: number;
@@ -127,7 +126,6 @@ export default function AttendeesPage() {
                       <th className="text-left p-3 font-medium">Name</th>
                       <th className="text-left p-3 font-medium">Email</th>
                       <th className="text-left p-3 font-medium">PIN</th>
-                      <th className="text-left p-3 font-medium">Tier</th>
                       <th className="text-center p-3 font-medium">
                         Checked In
                       </th>
@@ -142,17 +140,6 @@ export default function AttendeesPage() {
                         <td className="p-3 font-medium">{a.name}</td>
                         <td className="p-3 text-muted-foreground">{a.email}</td>
                         <td className="p-3 font-mono">{a.pin}</td>
-                        <td className="p-3">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                              a.ticketTier === "vip"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {a.ticketTier.toUpperCase()}
-                          </span>
-                        </td>
                         <td className="p-3 text-center">
                           {a.checkedIn ? (
                             <CheckCircle className="h-4 w-4 text-success mx-auto" />

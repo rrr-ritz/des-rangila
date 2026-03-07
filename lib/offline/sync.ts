@@ -25,7 +25,6 @@ export async function syncAttendees(): Promise<number> {
         pin: a.pin,
         name: a.name,
         email: a.email || "",
-        ticketTier: a.ticketTier || "general",
         checkedIn: a.checkedIn || false,
         stampsCollected: a.stampsCollected || [],
         totalFoodRedemptions: a.totalFoodRedemptions || 0,

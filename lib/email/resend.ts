@@ -30,7 +30,6 @@ export async function sendPassEmail(attendee: {
   email: string;
   pin: string;
   qrPayload: string;
-  ticketTier: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const resend = getResend();
@@ -90,7 +89,7 @@ export async function sendPassEmail(attendee: {
           ${attendee.pin}
         </p>
         <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">
-          ${attendee.ticketTier.toUpperCase()} TICKET
+          Digital Passport
         </p>
       </div>
 

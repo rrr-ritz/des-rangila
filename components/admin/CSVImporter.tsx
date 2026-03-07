@@ -85,8 +85,7 @@ export function CSVImporter() {
             Drag and drop a CSV file, or click to browse
           </p>
           <p className="text-xs text-muted-foreground mb-3">
-            Required columns: <code>name</code>, <code>email</code>.
-            Optional: <code>ticket_tier</code> (general/vip)
+            Required columns: <code>name</code>, <code>email</code>
           </p>
           <input
             type="file"

@@ -51,7 +51,7 @@ const stations = [
   { id: "karnataka", name: "Karnataka", region: "Karnataka", type: "food", activityName: null, foodItem: "Idli", tableNumber: 12, order: 12, isActive: true },
   { id: "tamil-nadu", name: "Tamil Nadu", region: "Tamil Nadu", type: "food", activityName: null, foodItem: "Uthappam", tableNumber: 13, order: 13, isActive: true },
   { id: "kerala", name: "Kerala", region: "Kerala", type: "activity", activityName: "Pookalam (Flower Rangoli)", foodItem: null, tableNumber: 14, order: 14, isActive: true },
-  { id: "registration", name: "Registration / Passport Table", region: "Registration", type: "registration", activityName: null, foodItem: null, tableNumber: 15, order: 15, isActive: true },
+  { id: "registration", name: "Check-In", region: "Registration", type: "registration", activityName: null, foodItem: null, tableNumber: 15, order: 15, isActive: true },
   { id: "photo-booth", name: "Photo Booth Station", region: "Photo Booth", type: "photo-booth", activityName: null, foodItem: null, tableNumber: 16, order: 16, isActive: true },
 ];
 

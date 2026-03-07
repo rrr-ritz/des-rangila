@@ -2,8 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Check, X, Loader2, RotateCcw, ShieldCheck } from "lucide-react";
+import { Camera, Check, X, Loader2, RotateCcw } from "lucide-react";
 
 interface SelfieCaptureProps {
   attendeeId: string;
@@ -22,7 +21,8 @@ export function SelfieCapture({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const [step, setStep] = useState<"consent" | "camera" | "processing" | "done" | "error">("consent");
+  // Default-on: start camera immediately (no consent step)
+  const [step, setStep] = useState<"camera" | "processing" | "done" | "error">("camera");
   const [cameraReady, setCameraReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -52,14 +52,11 @@ export function SelfieCapture({
     setCameraReady(false);
   }, []);
 
+  // Start camera immediately on mount (default-on behavior)
   useEffect(() => {
-    return () => stopCamera();
-  }, [stopCamera]);
-
-  const handleConsent = () => {
-    setStep("camera");
     startCamera();
-  };
+    return () => stopCamera();
+  }, [startCamera, stopCamera]);
 
   const handleCapture = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -122,47 +119,14 @@ export function SelfieCapture({
     startCamera();
   };
 
-  // CONSENT SCREEN
-  if (step === "consent") {
-    return (
-      <Card className="max-w-md mx-auto">
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-8 w-8 text-primary shrink-0" />
-            <div>
-              <h3 className="font-semibold">Link your event photos?</h3>
-              <p className="text-sm text-muted-foreground">Hi {attendeeName}!</p>
-            </div>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            We&apos;ll take a quick selfie to automatically match you in photos taken
-            by our photographers during the event. Your face data is a numeric
-            vector (not a photo) and is deleted 30 days after the event.
-          </p>
-
-          <div className="flex gap-2">
-            <Button className="flex-1" onClick={handleConsent}>
-              <Camera className="h-4 w-4 mr-2" />
-              Yes, link my photos
-            </Button>
-            <Button variant="outline" className="flex-1" onClick={onSkip}>
-              No thanks
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // CAMERA SCREEN
+  // CAMERA SCREEN (shown immediately — default-on, no consent gate)
   if (step === "camera") {
     return (
       <div className="max-w-md mx-auto space-y-4">
         <div className="text-center">
-          <h3 className="font-semibold">Quick selfie</h3>
+          <h3 className="font-semibold">Quick photo for your profile</h3>
           <p className="text-sm text-muted-foreground">
-            Face the camera and tap capture
+            Hi {attendeeName}! Face the camera and tap capture.
           </p>
         </div>
 
@@ -183,7 +147,7 @@ export function SelfieCapture({
 
         <canvas ref={canvasRef} className="hidden" />
 
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
           <Button
             size="lg"
             onClick={handleCapture}
@@ -192,7 +156,17 @@ export function SelfieCapture({
             <Camera className="h-5 w-5 mr-2" />
             Capture
           </Button>
+          <button
+            onClick={onSkip}
+            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            Skip
+          </button>
         </div>
+
+        <p className="text-[11px] text-muted-foreground/50 text-center leading-tight">
+          Used to match you in event photos. Stored as a numeric vector and deleted 30 days after the event.
+        </p>
       </div>
     );
   }

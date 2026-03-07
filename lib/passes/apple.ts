@@ -8,7 +8,6 @@ interface ApplePassData {
   qrPayload: string;
   name: string;
   pin: string;
-  ticketTier: string;
   stampsCollected: string[];
 }
 
@@ -85,11 +84,6 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
       key: "pin",
       label: "PIN",
       value: data.pin,
-    },
-    {
-      key: "tier",
-      label: "TICKET",
-      value: data.ticketTier.toUpperCase(),
     }
   );
 

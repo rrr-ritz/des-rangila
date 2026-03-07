@@ -39,7 +39,6 @@ export async function GET(
       qrPayload: params.qr,
       name: attendee.name || "Attendee",
       pin: attendee.pin || "",
-      ticketTier: attendee.ticketTier || "general",
       stampsCollected: attendee.stampsCollected || [],
     });
 

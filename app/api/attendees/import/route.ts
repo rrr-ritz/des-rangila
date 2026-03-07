@@ -8,7 +8,6 @@ import { logAction } from "@/lib/audit";
 interface CsvRow {
   name: string;
   email: string;
-  ticket_tier: string;
 }
 
 function parseCsv(text: string): CsvRow[] {
@@ -18,7 +17,6 @@ function parseCsv(text: string): CsvRow[] {
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
   const nameIdx = headers.indexOf("name");
   const emailIdx = headers.indexOf("email");
-  const tierIdx = headers.indexOf("ticket_tier");
 
   if (nameIdx === -1 || emailIdx === -1) {
     throw new Error("CSV must have 'name' and 'email' columns");
@@ -29,7 +27,6 @@ function parseCsv(text: string): CsvRow[] {
     return {
       name: cols[nameIdx] || "",
       email: cols[emailIdx] || "",
-      ticket_tier: tierIdx !== -1 ? cols[tierIdx] || "general" : "general",
     };
   }).filter((row) => row.name && row.email);
 }
@@ -106,7 +103,6 @@ export async function POST(request: NextRequest) {
         }
         existingQrPayloads.add(qrPayload);
 
-        const tier = row.ticket_tier === "vip" ? "vip" : "general";
         const now = Timestamp.now();
 
         const ref = adminDb.collection("attendees").doc();
@@ -116,14 +112,13 @@ export async function POST(request: NextRequest) {
           qrPayload,
           name: row.name,
           email: row.email.toLowerCase(),
-          ticketTier: tier,
           checkedIn: false,
           checkedInAt: null,
           faceDescriptor: null,
-          faceConsentGiven: false,
+          faceConsentGiven: true,
           stampsCollected: [],
           totalFoodRedemptions: 0,
-          maxFoodRedemptions: tier === "vip" ? 10 : 5,
+          maxFoodRedemptions: 7,
           walletPassGenerated: false,
           walletPassType: null,
           createdAt: now,

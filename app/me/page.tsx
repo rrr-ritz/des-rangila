@@ -9,7 +9,6 @@ import { PhotoGallery } from "@/components/attendee/PhotoGallery";
 interface AttendeeData {
   id: string;
   name: string;
-  ticketTier: string;
   checkedIn: boolean;
   stampsCollected: string[];
   totalFoodRedemptions: number;
@@ -94,7 +93,7 @@ export default function AttendePortalPage() {
       <div className="text-center mb-6">
         <h2 className="text-xl font-bold">Welcome, {attendee.name}!</h2>
         <p className="text-sm text-muted-foreground">
-          {attendee.ticketTier === "vip" ? "VIP" : "General Admission"}
+          Passport Holder
         </p>
       </div>
 

@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 interface AttendeeInfo {
   id: string;
   name: string;
-  ticketTier: string;
   checkedIn: boolean;
   stampsCollected: string[];
   totalFoodRedemptions: number;
@@ -181,9 +180,6 @@ export function ScanResult({
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
           {attendee.name}
         </h3>
-        <p className="text-sm font-medium text-gray-500 dark:text-muted-foreground">
-          {attendee.ticketTier === "vip" ? "VIP" : "General Admission"}
-        </p>
       </div>
 
       {/* Status items */}

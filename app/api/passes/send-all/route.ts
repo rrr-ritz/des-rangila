@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
             email: attendee.email as string,
             pin: (attendee.pin as string) || "",
             qrPayload: (attendee.qrPayload as string) || "",
-            ticketTier: (attendee.ticketTier as string) || "general",
           });
 
           if (result.success) {

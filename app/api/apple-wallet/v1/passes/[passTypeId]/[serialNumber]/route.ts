@@ -57,7 +57,6 @@ export async function GET(
       qrPayload: serialNumber,
       name: attendee.name || "Attendee",
       pin: attendee.pin || "",
-      ticketTier: attendee.ticketTier || "general",
       stampsCollected: attendee.stampsCollected || [],
     });
 

@@ -47,7 +47,6 @@ export async function POST(
       email: attendee.email,
       pin: attendee.pin || "",
       qrPayload: attendee.qrPayload || "",
-      ticketTier: attendee.ticketTier || "general",
     });
 
     if (!result.success) {

@@ -60,7 +60,7 @@ export default async function PassPage({
           <div>
             <h2 className="text-xl font-bold">{attendee.name}</h2>
             <p className="text-sm text-muted-foreground">
-              {attendee.ticketTier === "vip" ? "VIP" : "General Admission"}
+              Passport Holder
             </p>
           </div>
 

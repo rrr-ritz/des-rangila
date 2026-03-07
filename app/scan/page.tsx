@@ -6,7 +6,10 @@ import { QRScanner } from "@/components/scanner/QRScanner";
 import { ScanResult } from "@/components/scanner/ScanResult";
 import { OfflineBanner } from "@/components/scanner/OfflineBanner";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { Settings, Volume2, VolumeX, XCircle } from "lucide-react";
+import { SelfieCapture } from "@/components/face/SelfieCapture";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Settings, Volume2, VolumeX, XCircle, UserPlus, Check, Loader2, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAttendeeByQr, updateCachedAttendee } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
@@ -21,12 +24,22 @@ interface StationInfo {
 interface AttendeeInfo {
   id: string;
   name: string;
-  ticketTier: string;
   checkedIn: boolean;
   stampsCollected: string[];
   totalFoodRedemptions: number;
   maxFoodRedemptions: number;
 }
+
+interface WalkInAttendee {
+  id: string;
+  name: string;
+  email: string;
+  pin: string;
+  qrPayload: string;
+  checkedIn: boolean;
+}
+
+type WalkInStep = "form" | "creating" | "selfie" | "done";
 
 export default function ScanPage() {
   const { user, loading: authLoading } = useAuth();
@@ -44,6 +57,16 @@ export default function ScanPage() {
   const [notFound, setNotFound] = useState(false);
   // Sound toggle (persisted in localStorage)
   const [soundEnabled, setSoundEnabled] = useState(false);
+
+  // ---- Walk-in Registration State ----
+  const [showWalkIn, setShowWalkIn] = useState(false);
+  const [walkInStep, setWalkInStep] = useState<WalkInStep>("form");
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInEmail, setWalkInEmail] = useState("");
+  const [walkInError, setWalkInError] = useState("");
+  const [walkInAttendee, setWalkInAttendee] = useState<WalkInAttendee | null>(null);
+  const [walkInEmailSent, setWalkInEmailSent] = useState(false);
+  const [walkInAlreadyExists, setWalkInAlreadyExists] = useState(false);
 
   // Use a ref for pause state so the QRScanner callback doesn't need
   // to recreate — the scanner stays alive and checks this ref.
@@ -84,21 +107,21 @@ export default function ScanPage() {
 
       // Default stations for initial setup
       setStations([
-        { id: "registration", name: "Registration", type: "registration", foodItem: null },
-        { id: "jammu-kashmir", name: "Jammu & Kashmir", type: "activity", foodItem: null },
-        { id: "punjab", name: "Punjab", type: "both", foodItem: "Mango Lassi" },
-        { id: "rajasthan", name: "Rajasthan", type: "activity", foodItem: null },
-        { id: "gujarat", name: "Gujarat", type: "both", foodItem: "Chai" },
-        { id: "maharashtra", name: "Maharashtra", type: "both", foodItem: "Vada Pav" },
-        { id: "goa", name: "Goa", type: "activity", foodItem: null },
-        { id: "karnataka", name: "Karnataka", type: "both", foodItem: "Idli" },
-        { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
-        { id: "tamil-nadu", name: "Tamil Nadu", type: "both", foodItem: "Uthappam" },
-        { id: "andhra-pradesh", name: "Andhra Pradesh", type: "both", foodItem: "Biryani" },
-        { id: "telangana", name: "Telangana", type: "activity", foodItem: null },
+        { id: "registration", name: "Check-In", type: "registration", foodItem: null },
+        { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
+        { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
+        { id: "punjab", name: "Punjab", type: "food", foodItem: "Mango Lassi Shots" },
+        { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
+        { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
+        { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
+        { id: "central-india", name: "Central India", type: "food", foodItem: "Chai" },
         { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
-        { id: "west-bengal", name: "West Bengal", type: "both", foodItem: "Momos" },
-        { id: "northeast", name: "Northeast India", type: "activity", foodItem: null },
+        { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
+        { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
+        { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "food", foodItem: "Biryani" },
+        { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
+        { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
+        { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
         { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
       ]);
 
@@ -235,6 +258,85 @@ export default function ScanPage() {
     }
   }
 
+  // ---- WALK-IN REGISTRATION HANDLERS ----
+  function openWalkIn() {
+    setShowWalkIn(true);
+    setWalkInStep("form");
+    setWalkInName("");
+    setWalkInEmail("");
+    setWalkInError("");
+    setWalkInAttendee(null);
+    setWalkInEmailSent(false);
+    setWalkInAlreadyExists(false);
+    pausedRef.current = true;
+  }
+
+  function closeWalkIn() {
+    setShowWalkIn(false);
+    setWalkInStep("form");
+    setWalkInName("");
+    setWalkInEmail("");
+    setWalkInError("");
+    setWalkInAttendee(null);
+    pausedRef.current = false;
+  }
+
+  async function handleWalkInSubmit() {
+    if (!user) return;
+    if (!walkInName.trim()) {
+      setWalkInError("Name is required");
+      return;
+    }
+    if (!walkInEmail.trim() || !walkInEmail.includes("@")) {
+      setWalkInError("Valid email is required");
+      return;
+    }
+
+    setWalkInError("");
+    setWalkInStep("creating");
+
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/attendees/walk-in", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: walkInName.trim(),
+          email: walkInEmail.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setWalkInError(data.error || "Registration failed");
+        setWalkInStep("form");
+        return;
+      }
+
+      setWalkInAttendee(data.attendee);
+      setWalkInEmailSent(data.emailSent || false);
+      setWalkInAlreadyExists(data.alreadyExists || false);
+
+      // Move to selfie capture step
+      setWalkInStep("selfie");
+    } catch {
+      setWalkInError("Network error. Please try again.");
+      setWalkInStep("form");
+    }
+  }
+
+  function handleSelfieComplete() {
+    setWalkInStep("done");
+  }
+
+  function handleSelfieSkip() {
+    setWalkInStep("done");
+  }
+
   // ---- LOADING / AUTH STATES ----
   if (authLoading) {
     return (
@@ -275,7 +377,148 @@ export default function ScanPage() {
     );
   }
 
+  // ---- WALK-IN REGISTRATION UI ----
+  if (showWalkIn) {
+    return (
+      <div className="min-h-screen flex flex-col max-w-sm mx-auto">
+        <header className="flex items-center gap-3 p-3 border-b">
+          <button
+            onClick={closeWalkIn}
+            className="p-2 rounded-md hover:bg-muted min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label="Back to scanner"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <p className="font-semibold text-sm">Walk-in Registration</p>
+            <p className="text-xs text-muted-foreground">Create a new passport</p>
+          </div>
+        </header>
+
+        <div className="flex-1 p-4">
+          {/* Step 1: Name + Email Form */}
+          {walkInStep === "form" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="walkin-name" className="text-sm font-medium">
+                  Name
+                </label>
+                <Input
+                  id="walkin-name"
+                  placeholder="Full name"
+                  value={walkInName}
+                  onChange={(e) => setWalkInName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="walkin-email" className="text-sm font-medium">
+                  Email
+                </label>
+                <Input
+                  id="walkin-email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={walkInEmail}
+                  onChange={(e) => setWalkInEmail(e.target.value)}
+                />
+              </div>
+
+              {walkInError && (
+                <p className="text-sm text-destructive">{walkInError}</p>
+              )}
+
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleWalkInSubmit}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Passport
+              </Button>
+            </div>
+          )}
+
+          {/* Step 2: Creating... */}
+          {walkInStep === "creating" && (
+            <div className="text-center py-12 space-y-4">
+              <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
+              <div>
+                <h3 className="font-semibold">Creating passport...</h3>
+                <p className="text-sm text-muted-foreground">
+                  Generating PIN and QR code
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Selfie Capture */}
+          {walkInStep === "selfie" && walkInAttendee && (
+            <div className="space-y-4">
+              {walkInAlreadyExists && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200 text-sm px-4 py-2 rounded-md">
+                  This email is already registered. Showing existing passport.
+                </div>
+              )}
+
+              <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
+                <p className="text-sm text-muted-foreground">Passport created for</p>
+                <p className="font-semibold text-lg">{walkInAttendee.name}</p>
+                <p className="text-2xl font-mono font-bold text-primary tracking-[0.3em]">
+                  {walkInAttendee.pin}
+                </p>
+                {walkInEmailSent && (
+                  <p className="text-xs text-green-600">
+                    Pass email sent to {walkInAttendee.email}
+                  </p>
+                )}
+              </div>
+
+              <SelfieCapture
+                attendeeId={walkInAttendee.id}
+                attendeeName={walkInAttendee.name}
+                onComplete={handleSelfieComplete}
+                onSkip={handleSelfieSkip}
+              />
+            </div>
+          )}
+
+          {/* Step 4: Done */}
+          {walkInStep === "done" && walkInAttendee && (
+            <div className="text-center py-12 space-y-6">
+              <Check className="h-16 w-16 mx-auto text-green-500" />
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">All set!</h3>
+                <p className="text-sm text-muted-foreground">
+                  {walkInAttendee.name} is checked in and ready to go.
+                </p>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                <p className="text-xs text-muted-foreground">PIN</p>
+                <p className="text-3xl font-mono font-bold text-primary tracking-[0.3em]">
+                  {walkInAttendee.pin}
+                </p>
+                {walkInEmailSent && (
+                  <p className="text-xs text-green-600">
+                    Digital passport emailed to {walkInAttendee.email}
+                  </p>
+                )}
+              </div>
+
+              <Button className="w-full" size="lg" onClick={closeWalkIn}>
+                Done — Back to Scanner
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ---- MAIN SCAN UI ----
+  const isCheckIn = station?.type === "registration";
+
   return (
     <div className="min-h-screen flex flex-col max-w-sm mx-auto">
       {/* Full-screen border flash — visible in direct sunlight */}
@@ -340,6 +583,21 @@ export default function ScanPage() {
       </header>
 
       <OfflineBanner />
+
+      {/* Walk-in Registration button — only shown at Check-In station */}
+      {isCheckIn && (
+        <div className="px-4 pt-3">
+          <Button
+            variant="outline"
+            className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            size="lg"
+            onClick={openWalkIn}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Walk-in Registration
+          </Button>
+        </div>
+      )}
 
       {/* Scanner + overlays */}
       <div className="flex-1 p-4">

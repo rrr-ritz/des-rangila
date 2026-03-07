@@ -20,7 +20,7 @@ interface KPICardsProps {
 const kpis = [
   {
     key: "checkedIn" as const,
-    label: "Checked In",
+    label: "Passports Activated",
     icon: UserCheck,
     getValue: (s: Stats) => `${s.totalCheckedIn} / ${s.totalRegistered}`,
     getSubtext: (s: Stats) =>

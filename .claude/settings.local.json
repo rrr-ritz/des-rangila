@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src=no --import-alias=\"@/*\" --use-npm)",
+      "Bash(nvm ls)",
+      "Bash(node --version)",
+      "Bash(fnm ls)",
+      "Bash(brew list node)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use 20)",
+      "Bash(npm run build)",
+      "Bash(npm install @vladmandic/face-api)",
+      "Bash(BASE_URL=\"https://raw.githubusercontent.com/vladmandic/face-api/master/model\")",
+      "Bash(curl -sLO \"$BASE_URL/ssd_mobilenetv1_model-weights_manifest.json\")",
+      "Bash(curl -sLO \"$BASE_URL/ssd_mobilenetv1_model-shard1\")",
+      "Bash(curl -sLO \"$BASE_URL/ssd_mobilenetv1_model-shard2\")",
+      "Bash(curl -sLO \"$BASE_URL/face_landmark_68_model-weights_manifest.json\")",
+      "Bash(curl -sLO \"$BASE_URL/face_landmark_68_model-shard1\")",
+      "Bash(curl -sLO \"$BASE_URL/face_recognition_model-weights_manifest.json\")",
+      "Bash(curl -sLO \"$BASE_URL/face_recognition_model-shard1\")",
+      "Bash(curl -sLO \"$BASE_URL/face_recognition_model-shard2\")",
+      "WebFetch(domain:github.com)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\(''/Users/ritvikrangaraju/Documents/sem8/des-rangila/public/models/ssd_mobilenetv1_model-weights_manifest.json''\\)\\); paths=[p for item in d for p in item.get\\(''paths'',[]\\)]; print\\(set\\(paths\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/admin/login)",
+      "Bash(curl -s http://localhost:3000/api/attendees)",
+      "Bash(curl -s http://localhost:3000/api/attendees/by-pin/000000)",
+      "Bash(node -e \":*)",
+      "Bash(node /Users/ritvikrangaraju/Documents/sem8/des-rangila/check-user.js)",
+      "Bash(node /Users/ritvikrangaraju/Documents/sem8/des-rangila/test-auth.js)",
+      "Bash(git init /Users/ritvikrangaraju/Documents/sem8/des-rangila)",
+      "Bash(git -C /Users/ritvikrangaraju/Documents/sem8/des-rangila status -u)",
+      "Bash(git add -A)",
+      "Bash(lsof -ti:3000,3001)",
+      "Bash(xargs kill -9)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

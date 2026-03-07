@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { RefreshCw, MapPin, Utensils, Camera, UserPlus } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { Station } from "@/lib/types";
 
 type StationWithCounts = Station & {
@@ -38,40 +39,30 @@ const typeBadgeVariant: Record<string, "default" | "secondary" | "outline"> = {
 };
 
 export default function StationsPage() {
+  const { user } = useAuth();
   const [stations, setStations] = useState<StationWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchStations = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      // Stations don't have a dedicated list endpoint yet —
-      // in production this would be fetched from Firestore.
-      // For now, use hardcoded station data matching the design doc.
-      const defaultStations: StationWithCounts[] = [
-        { id: "s1", name: "Punjab", region: "North India", type: "both" as const, activityName: "Bhangra Workshop", foodItem: "Chole Bhature", tableNumber: 1, order: 1, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s2", name: "Rajasthan", region: "North India", type: "both" as const, activityName: "Puppet Making", foodItem: "Dal Baati", tableNumber: 2, order: 2, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s3", name: "Gujarat", region: "West India", type: "both" as const, activityName: "Garba Dance", foodItem: "Dhokla", tableNumber: 3, order: 3, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s4", name: "Maharashtra", region: "West India", type: "both" as const, activityName: "Warli Art", foodItem: "Vada Pav", tableNumber: 4, order: 4, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s5", name: "Tamil Nadu", region: "South India", type: "both" as const, activityName: "Kolam Design", foodItem: "Dosa & Chutney", tableNumber: 5, order: 5, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s6", name: "Kerala", region: "South India", type: "both" as const, activityName: "Kathakali Mask", foodItem: "Banana Chips", tableNumber: 6, order: 6, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s7", name: "Karnataka", region: "South India", type: "both" as const, activityName: "Mysore Art", foodItem: "Bisi Bele Bath", tableNumber: 7, order: 7, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s8", name: "West Bengal", region: "East India", type: "both" as const, activityName: "Alpona Art", foodItem: "Rasgulla", tableNumber: 8, order: 8, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s9", name: "Assam", region: "Northeast India", type: "both" as const, activityName: "Tea Tasting", foodItem: "Pitha", tableNumber: 9, order: 9, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s10", name: "Odisha", region: "East India", type: "both" as const, activityName: "Pattachitra", foodItem: "Chhena Poda", tableNumber: 10, order: 10, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s11", name: "Madhya Pradesh", region: "Central India", type: "both" as const, activityName: "Gond Art", foodItem: "Poha Jalebi", tableNumber: 11, order: 11, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s12", name: "Uttar Pradesh", region: "North India", type: "both" as const, activityName: "Chikankari Demo", foodItem: "Chaat", tableNumber: 12, order: 12, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s13", name: "Goa", region: "West India", type: "both" as const, activityName: "Tile Painting", foodItem: "Bebinca", tableNumber: 13, order: 13, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s14", name: "Himachal Pradesh", region: "North India", type: "both" as const, activityName: "Kullu Shawl Weaving", foodItem: "Siddu", tableNumber: 14, order: 14, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s15", name: "Photo Booth", region: "", type: "photo-booth" as const, activityName: "Photo Strip", foodItem: null, tableNumber: 15, order: 15, isActive: true, visitCount: 0, volunteerCount: 0 },
-        { id: "s16", name: "Registration", region: "", type: "registration" as const, activityName: "Check-in", foodItem: null, tableNumber: 16, order: 16, isActive: true, visitCount: 0, volunteerCount: 0 },
-      ];
-      setStations(defaultStations);
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/stats", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stations) {
+          setStations(data.stations);
+        }
+      }
     } catch {
       // silently fail
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchStations();

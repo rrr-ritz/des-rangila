@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { RefreshCw, Minus, Plus, Package } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface InventoryItemData {
   id: string;
@@ -24,15 +25,20 @@ interface InventoryItemData {
 }
 
 export default function InventoryPage() {
+  const { user } = useAuth();
   const [items, setItems] = useState<InventoryItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editItem, setEditItem] = useState<InventoryItemData | null>(null);
   const [editValue, setEditValue] = useState("");
 
   const fetchInventory = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/inventory");
+      const token = await user.getIdToken();
+      const res = await fetch("/api/inventory", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -42,7 +48,7 @@ export default function InventoryPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchInventory();
@@ -60,14 +66,18 @@ export default function InventoryPage() {
   };
 
   const saveEdit = async () => {
-    if (!editItem) return;
+    if (!editItem || !user) return;
     const newCount = parseInt(editValue);
     if (isNaN(newCount) || newCount < 0) return;
 
     try {
+      const token = await user.getIdToken();
       const res = await fetch(`/api/inventory/${editItem.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ remainingCount: newCount }),
       });
       if (res.ok) {

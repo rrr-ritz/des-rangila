@@ -6,6 +6,7 @@ import { KPICards } from "@/components/admin/KPICards";
 import { StationGrid } from "@/components/admin/StationGrid";
 import { ActivityFeed } from "@/components/admin/ActivityFeed";
 import { NotificationBell } from "@/components/admin/NotificationBell";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface Stats {
   totalRegistered: number;
@@ -45,6 +46,7 @@ interface Notification {
 }
 
 export default function AdminOverviewPage() {
+  const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [stations, setStations] = useState<StationData[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -52,15 +54,22 @@ export default function AdminOverviewPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
+    if (!user) return;
     try {
+      const token = await user.getIdToken();
+      const headers = { Authorization: `Bearer ${token}` };
+
       const [statsRes, activityRes] = await Promise.allSettled([
-        fetch("/api/admin/stats"),
-        fetch("/api/admin/audit-log?limit=30"),
+        fetch("/api/admin/stats", { headers }),
+        fetch("/api/admin/audit-log?limit=30", { headers }),
       ]);
 
       if (statsRes.status === "fulfilled" && statsRes.value.ok) {
         const data = await statsRes.value.json();
         setStats(data);
+        if (data.stations) {
+          setStations(data.stations);
+        }
       }
 
       if (activityRes.status === "fulfilled" && activityRes.value.ok) {
@@ -87,16 +96,12 @@ export default function AdminOverviewPage() {
           }));
         setNotifications(notifs);
       }
-
-      // Build station data from stats if available
-      // For now, use empty array — stations page has the full management UI
-      setStations([]);
     } catch {
       // Silently fail — components handle empty state
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchData();

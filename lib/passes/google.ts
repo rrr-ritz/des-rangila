@@ -2,7 +2,8 @@ import { GoogleAuth } from "google-auth-library";
 import jwt from "jsonwebtoken";
 
 const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID || "";
-const CLASS_ID = process.env.GOOGLE_WALLET_CLASS_ID || `${ISSUER_ID}.desrangila_2026`;
+const CLASS_SUFFIX = process.env.GOOGLE_WALLET_CLASS_ID || "desrangila_2026";
+const CLASS_ID = `${ISSUER_ID}.${CLASS_SUFFIX}`;
 
 interface GooglePassData {
   qrPayload: string;
@@ -18,7 +19,7 @@ interface GooglePassData {
 export function isGoogleWalletConfigured(): boolean {
   return !!(
     process.env.GOOGLE_WALLET_ISSUER_ID &&
-    process.env.GOOGLE_WALLET_SERVICE_ACCOUNT
+    process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY
   );
 }
 
@@ -26,7 +27,7 @@ export function isGoogleWalletConfigured(): boolean {
  * Get authenticated Google API client.
  */
 function getAuthClient(): GoogleAuth {
-  const credentials = JSON.parse(process.env.GOOGLE_WALLET_SERVICE_ACCOUNT || "{}");
+  const credentials = JSON.parse(process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY || "{}");
   return new GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/wallet_object.issuer"],
@@ -194,7 +195,7 @@ export function generateSaveUrl(data: GooglePassData): string {
     throw new Error("Google Wallet is not configured.");
   }
 
-  const credentials = JSON.parse(process.env.GOOGLE_WALLET_SERVICE_ACCOUNT || "{}");
+  const credentials = JSON.parse(process.env.GOOGLE_WALLET_SERVICE_ACCOUNT_KEY || "{}");
 
   const objectId = `${ISSUER_ID}.${data.qrPayload}`;
 

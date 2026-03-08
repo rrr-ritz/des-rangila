@@ -1,11 +1,11 @@
 import crypto from "crypto";
 
 /**
- * Generate a cryptographically random 6-digit PIN.
+ * Generate a cryptographically random 4-digit PIN.
  */
 export function generatePin(): string {
-  // Generate a random number between 100000 and 999999
-  const num = crypto.randomInt(100000, 1000000);
+  // Generate a random number between 1000 and 9999
+  const num = crypto.randomInt(1000, 10000);
   return num.toString();
 }
 
@@ -23,10 +23,10 @@ export function generateQrPayload(): string {
 }
 
 /**
- * Validate a PIN format (exactly 6 digits).
+ * Validate a PIN format (exactly 4 digits).
  */
 export function isValidPin(pin: string): boolean {
-  return /^\d{6}$/.test(pin);
+  return /^\d{4}$/.test(pin);
 }
 
 /**

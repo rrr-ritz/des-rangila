@@ -39,7 +39,7 @@ export async function GET(
 
   const { pin } = params;
 
-  if (!/^\d{6}$/.test(pin)) {
+  if (!/^\d{4}$/.test(pin)) {
     return NextResponse.json({ error: "Invalid PIN format" }, { status: 400 });
   }
 

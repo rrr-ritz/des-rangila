@@ -71,7 +71,7 @@ export default function AttendePortalPage() {
           <div className="text-center">
             <h2 className="text-lg font-semibold mb-1">Your Event Passport</h2>
             <p className="text-sm text-muted-foreground">
-              Enter your 6-digit PIN to view your stamps and photos.
+              Enter your 4-digit PIN to view your stamps and photos.
             </p>
           </div>
           <PINEntry

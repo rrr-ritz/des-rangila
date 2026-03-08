@@ -14,10 +14,10 @@ export function PINEntry({ onSubmit, loading, error }: PINEntryProps) {
   const [pin, setPin] = useState("");
 
   function handleKey(digit: string) {
-    if (pin.length < 6) {
+    if (pin.length < 4) {
       const newPin = pin + digit;
       setPin(newPin);
-      if (newPin.length === 6) {
+      if (newPin.length === 4) {
         onSubmit(newPin);
       }
     }
@@ -34,8 +34,8 @@ export function PINEntry({ onSubmit, loading, error }: PINEntryProps) {
   return (
     <div className="w-full max-w-xs mx-auto space-y-6" role="form" aria-label="PIN entry">
       {/* PIN display */}
-      <div className="flex justify-center gap-2" aria-label={`PIN: ${pin.length} of 6 digits entered`}>
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="flex justify-center gap-2" aria-label={`PIN: ${pin.length} of 4 digits entered`}>
+        {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
             className={`w-10 h-12 rounded-lg border-2 flex items-center justify-center text-xl font-mono font-bold transition-colors ${
@@ -62,7 +62,7 @@ export function PINEntry({ onSubmit, loading, error }: PINEntryProps) {
             variant="outline"
             className="h-14 text-xl font-semibold"
             onClick={() => handleKey(digit)}
-            disabled={loading || pin.length >= 6}
+            disabled={loading || pin.length >= 4}
             aria-label={`Digit ${digit}`}
           >
             {digit}
@@ -81,7 +81,7 @@ export function PINEntry({ onSubmit, loading, error }: PINEntryProps) {
           variant="outline"
           className="h-14 text-xl font-semibold"
           onClick={() => handleKey("0")}
-          disabled={loading || pin.length >= 6}
+          disabled={loading || pin.length >= 4}
           aria-label="Digit 0"
         >
           0

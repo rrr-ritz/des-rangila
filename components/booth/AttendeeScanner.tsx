@@ -54,7 +54,7 @@ export function AttendeeScanner({ onIdentify, onSkip }: AttendeeScannerProps) {
   };
 
   const handlePinSubmit = () => {
-    if (pin.length === 6) {
+    if (pin.length === 4) {
       lookupByPin(pin);
     }
   };
@@ -106,7 +106,7 @@ export function AttendeeScanner({ onIdentify, onSkip }: AttendeeScannerProps) {
         <div>
           <h2 className="text-xl font-bold mb-2">Enter your PIN</h2>
           <p className="text-sm text-muted-foreground">
-            The 6-digit PIN from your digital passport
+            The 4-digit PIN from your digital passport
           </p>
         </div>
 
@@ -115,12 +115,12 @@ export function AttendeeScanner({ onIdentify, onSkip }: AttendeeScannerProps) {
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            maxLength={6}
-            placeholder="000000"
+            maxLength={4}
+            placeholder="0000"
             className="text-center text-2xl font-mono tracking-[0.5em] h-14"
             value={pin}
             onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+              const val = e.target.value.replace(/\D/g, "").slice(0, 4);
               setPin(val);
             }}
             autoFocus
@@ -145,7 +145,7 @@ export function AttendeeScanner({ onIdentify, onSkip }: AttendeeScannerProps) {
             <Button
               className="flex-1"
               onClick={handlePinSubmit}
-              disabled={pin.length !== 6 || loading}
+              disabled={pin.length !== 4 || loading}
             >
               {loading ? "Looking up..." : "Find Me"}
             </Button>

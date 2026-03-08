@@ -78,6 +78,10 @@ export function SelfieCapture({
     setStep("processing");
 
     try {
+      // Extract JPEG image as base64 for InsightFace post-event processing
+      const selfieDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const selfieImageBase64 = selfieDataUrl.replace(/^data:image\/jpeg;base64,/, "");
+
       // Load face-api models and extract descriptor
       const { loadModels, extractDescriptor } = await import("@/lib/face/detect");
       await loadModels();
@@ -90,12 +94,12 @@ export function SelfieCapture({
         return;
       }
 
-      // Send descriptor to API
+      // Send descriptor + selfie image to API
       const descriptorArray = Array.from(descriptor);
       const res = await fetch(`/api/attendees/${attendeeId}/face`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descriptor: descriptorArray }),
+        body: JSON.stringify({ descriptor: descriptorArray, selfieImageBase64 }),
       });
 
       if (!res.ok) {

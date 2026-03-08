@@ -1,0 +1,16 @@
+1.jpeg:ritvik,ved,atharva
+2.png:ritvik,pari,atharva,ved
+3.jpeg:ritvik,ved
+4.jpeg:ritvik
+5.jpeg:ritvik,atharva
+6.jpeg:
+7.JPG:pari,ritvik
+8.jpeg:ritvik,pari
+9.jpeg:ved,ritvik,pari
+10.jpeg:pari
+11.jpeg:ritvik
+12.jpeg:atharva,ved,ritvik,pari
+13.jpeg:ritvik,pari
+14.jpeg:ved,ritvik,pari
+15.jpg:ritvik
+16.jpeg:pari

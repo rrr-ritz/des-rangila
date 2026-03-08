@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, adminStorage } from "@/lib/firebase/admin";
 import { verifyAuth, AuthError } from "@/lib/auth-helpers";
 
 export async function POST(
@@ -25,7 +25,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { descriptor } = body;
+  const { descriptor, selfieImageBase64 } = body;
 
   if (!descriptor || !Array.isArray(descriptor) || descriptor.length !== 128) {
     return NextResponse.json(
@@ -50,12 +50,44 @@ export async function POST(
       return NextResponse.json({ error: "Attendee not found" }, { status: 404 });
     }
 
-    await attendeeRef.update({
+    // Upload selfie image to Firebase Storage if provided
+    let selfieStorageUrl: string | null = null;
+
+    if (selfieImageBase64 && typeof selfieImageBase64 === "string") {
+      try {
+        const buffer = Buffer.from(selfieImageBase64, "base64");
+        const filePath = `selfies/${id}.jpg`;
+        const file = adminStorage.bucket().file(filePath);
+
+        await file.save(buffer, {
+          contentType: "image/jpeg",
+          metadata: {
+            cacheControl: "public, max-age=31536000",
+          },
+        });
+
+        // Make the file publicly accessible and get the URL
+        await file.makePublic();
+        selfieStorageUrl = `https://storage.googleapis.com/${adminStorage.bucket().name}/${filePath}`;
+      } catch (storageErr) {
+        // Log but don't fail — the descriptor is more important
+        console.error("Selfie image upload error:", storageErr);
+      }
+    }
+
+    // Update attendee doc with descriptor and optional selfie URL
+    const updateData: Record<string, unknown> = {
       faceDescriptor: descriptor,
       faceConsentGiven: true,
-    });
+    };
 
-    return NextResponse.json({ success: true });
+    if (selfieStorageUrl) {
+      updateData.selfieStorageUrl = selfieStorageUrl;
+    }
+
+    await attendeeRef.update(updateData);
+
+    return NextResponse.json({ success: true, selfieUploaded: !!selfieStorageUrl });
   } catch (error) {
     console.error("Face descriptor save error:", error);
     return NextResponse.json(

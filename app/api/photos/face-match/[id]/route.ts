@@ -51,7 +51,9 @@ export async function PATCH(
 
     const matchData = matchDoc.data()!;
 
-    if (matchData.status !== "pending") {
+    // Allow actions on pending and auto-approved matches
+    // (auto-approved can be revoked/rejected by admin if the match is wrong)
+    if (!["pending", "auto-approved"].includes(matchData.status)) {
       return NextResponse.json(
         { error: `Match already ${matchData.status}` },
         { status: 409 }
@@ -64,6 +66,18 @@ export async function PATCH(
       reviewedAt: FieldValue.serverTimestamp(),
       reviewedBy: authResult.uid,
     });
+
+    // If rejecting an auto-approved match, unlink the photo from the attendee
+    if (action === "reject" && matchData.status === "auto-approved") {
+      const photoRef = adminDb.collection("photos").doc(matchData.photoId);
+      const photoDoc = await photoRef.get();
+
+      if (photoDoc.exists) {
+        await photoRef.update({
+          attendeeIds: FieldValue.arrayRemove(matchData.attendeeId),
+        });
+      }
+    }
 
     // If approved, link the photo to the attendee
     if (action === "approve") {

@@ -22,10 +22,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "pending";
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
 
-    let query = adminDb
+    let query: FirebaseFirestore.Query = adminDb
       .collection("face_match_queue")
-      .where("status", "==", status)
       .orderBy("createdAt", "desc");
+
+    // Support "all" to fetch all statuses (for admin overview)
+    if (status !== "all") {
+      query = query.where("status", "==", status);
+    }
 
     if (limit > 0) {
       query = query.limit(limit);

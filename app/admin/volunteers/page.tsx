@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,13 +26,18 @@ interface VolunteerData {
 }
 
 export default function VolunteersPage() {
+  const { user } = useAuth();
   const [volunteers, setVolunteers] = useState<VolunteerData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchVolunteers = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/volunteers");
+      const token = await user.getIdToken();
+      const res = await fetch("/api/volunteers", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setVolunteers(data.volunteers || []);
@@ -41,7 +47,7 @@ export default function VolunteersPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchVolunteers();

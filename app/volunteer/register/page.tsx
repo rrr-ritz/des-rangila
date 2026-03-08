@@ -34,6 +34,25 @@ export default function VolunteerRegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  function formatE164(raw: string): string {
+    // Strip everything except digits
+    const digits = raw.replace(/\D/g, "");
+    // If already has country code (11 digits starting with 1), add +
+    if (digits.length === 11 && digits.startsWith("1")) {
+      return `+${digits}`;
+    }
+    // 10-digit US number — prepend +1
+    if (digits.length === 10) {
+      return `+1${digits}`;
+    }
+    // If user already typed +, pass through
+    if (raw.startsWith("+")) {
+      return raw.replace(/[^\d+]/g, "");
+    }
+    // Fallback: prepend +1 and hope for the best
+    return `+1${digits}`;
+  }
+
   async function handleSendCode() {
     setError("");
     setLoading(true);
@@ -41,6 +60,8 @@ export default function VolunteerRegisterPage() {
     try {
       const auth = getFirebaseAuth();
       if (!auth) throw new Error("Firebase not configured");
+
+      const e164Phone = formatE164(phone);
 
       // Initialize RecaptchaVerifier
       if (!(window as unknown as Record<string, unknown>).recaptchaVerifier) {
@@ -53,7 +74,7 @@ export default function VolunteerRegisterPage() {
       const verifier = (
         window as unknown as Record<string, unknown>
       ).recaptchaVerifier as RecaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, phone, verifier);
+      const result = await signInWithPhoneNumber(auth, e164Phone, verifier);
       setConfirmation(result);
       setStep("verify");
     } catch (e) {
@@ -128,13 +149,19 @@ export default function VolunteerRegisterPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1 (555) 000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <div className="flex items-center justify-center px-3 rounded-md border bg-muted text-sm font-medium text-muted-foreground shrink-0">
+                    +1
+                  </div>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="(555) 000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
               </div>
               {error && (
                 <p className="text-sm text-destructive">{error}</p>

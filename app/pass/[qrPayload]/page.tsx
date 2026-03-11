@@ -1,20 +1,19 @@
 import { EventHeader } from "@/components/shared/EventHeader";
 import { headers } from "next/headers";
+import { adminDb } from "@/lib/firebase/admin";
 
 async function getAttendee(qrPayload: string) {
-  // In production, this calls Firestore directly via admin SDK
-  // For now, we'll use the API route with server-side fetch
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   try {
-    const res = await fetch(
-      `${appUrl}/api/attendees/by-qr/${qrPayload}`,
-      {
-        cache: "no-store",
-        headers: { Authorization: "Bearer server-internal" },
-      }
-    );
-    if (!res.ok) return null;
-    return res.json();
+    const snapshot = await adminDb
+      .collection("attendees")
+      .where("qrPayload", "==", qrPayload)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    const data = doc.data() as { name: string; pin: string; qrPayload: string; stampsCollected?: string[] };
+    return { id: doc.id, ...data };
   } catch {
     return null;
   }

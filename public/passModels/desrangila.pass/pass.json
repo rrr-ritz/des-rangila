@@ -9,7 +9,8 @@
   "backgroundColor": "rgb(99, 102, 241)",
   "labelColor": "rgb(199, 210, 254)",
   "logoText": "Des Rangila",
-  "generic": {
+  "eventTicket": {
+    "headerFields": [],
     "primaryFields": [],
     "secondaryFields": [],
     "auxiliaryFields": [],

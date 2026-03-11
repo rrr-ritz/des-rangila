@@ -4,6 +4,26 @@ import fs from "fs";
 
 const PASS_MODEL_DIR = path.join(process.cwd(), "public", "passModels", "desrangila.pass");
 
+// All 16 stations in table order (for back fields)
+const STATIONS = [
+  { id: "jammu-kashmir", name: "JAMMU & KASHMIR + LADAKH", activity: "Hair Clip Making" },
+  { id: "himachal-uttarakhand", name: "HIMACHAL + UTTARAKHAND", activity: "Postcard Coloring" },
+  { id: "punjab", name: "PUNJAB", activity: "Mango Lassi Shots" },
+  { id: "haryana-rajasthan", name: "HARYANA + RAJASTHAN", activity: "Block Printing" },
+  { id: "gujarat", name: "GUJARAT", activity: "Dandiya Making" },
+  { id: "maharashtra", name: "MAHARASHTRA", activity: "Vada Pav" },
+  { id: "central-india", name: "CENTRAL INDIA", activity: "Chai" },
+  { id: "odisha", name: "ODISHA", activity: "Mehendi / Henna" },
+  { id: "west-bengal", name: "WEST BENGAL", activity: "Polaroid Photo Booth" },
+  { id: "seven-sisters-sikkim", name: "SEVEN SISTERS + SIKKIM", activity: "Momos" },
+  { id: "andhra-telangana", name: "ANDHRA + TELANGANA", activity: "Biryani" },
+  { id: "karnataka", name: "KARNATAKA", activity: "Idli" },
+  { id: "tamil-nadu", name: "TAMIL NADU", activity: "Uthappam" },
+  { id: "kerala", name: "KERALA", activity: "Pookalam (Flower Rangoli)" },
+  { id: "registration", name: "CHECK-IN", activity: "" },
+  { id: "photo-booth", name: "PHOTO BOOTH", activity: "" },
+];
+
 interface ApplePassData {
   qrPayload: string;
   name: string;
@@ -12,15 +32,47 @@ interface ApplePassData {
 }
 
 /**
+ * Load certificate from file path (dev) or base64 env var (Vercel production).
+ */
+function loadCert(filePath: string | undefined, base64EnvVar: string | undefined): Buffer {
+  // Try base64 env var first (Vercel production)
+  if (base64EnvVar) {
+    return Buffer.from(base64EnvVar, "base64");
+  }
+  // Fall back to file path (local development)
+  if (filePath && fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath);
+  }
+  // Try relative to cwd
+  if (filePath) {
+    const cwdPath = path.join(process.cwd(), filePath);
+    if (fs.existsSync(cwdPath)) {
+      return fs.readFileSync(cwdPath);
+    }
+  }
+  throw new Error(`Certificate not found: ${filePath}`);
+}
+
+/**
  * Check if Apple Wallet is configured with the necessary certs/env vars.
  */
 export function isAppleWalletConfigured(): boolean {
-  return !!(
+  const hasCoreConfig = !!(
     process.env.APPLE_PASS_TYPE_IDENTIFIER &&
-    process.env.APPLE_TEAM_IDENTIFIER &&
+    process.env.APPLE_TEAM_IDENTIFIER
+  );
+
+  // Need either file paths OR base64 env vars
+  const hasFileCerts = !!(
     process.env.APPLE_PASS_CERT_PATH &&
     process.env.APPLE_WWDR_CERT_PATH
   );
+  const hasBase64Certs = !!(
+    process.env.APPLE_PASS_CERT_P12_BASE64 &&
+    process.env.APPLE_WWDR_CERT_BASE64
+  );
+
+  return hasCoreConfig && (hasFileCerts || hasBase64Certs);
 }
 
 /**
@@ -32,13 +84,14 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
     throw new Error("Apple Wallet is not configured. Set APPLE_* env vars.");
   }
 
-  const wwdrCert = fs.readFileSync(process.env.APPLE_WWDR_CERT_PATH!);
-  const signerCert = fs.readFileSync(process.env.APPLE_PASS_CERT_PATH!);
-
-  // The signer key can be a separate file or the same as the cert
-  // passkit-generator extracts the key from the cert file
-  const signerKeyPath = process.env.APPLE_PASS_KEY_PATH || process.env.APPLE_PASS_CERT_PATH!;
-  const signerKey = fs.readFileSync(signerKeyPath);
+  const signerCert = loadCert(
+    process.env.APPLE_PASS_CERT_PATH,
+    process.env.APPLE_PASS_CERT_P12_BASE64
+  );
+  const wwdrCert = loadCert(
+    process.env.APPLE_WWDR_CERT_PATH,
+    process.env.APPLE_WWDR_CERT_BASE64
+  );
 
   const pass = await PKPass.from(
     {
@@ -46,7 +99,7 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
       certificates: {
         wwdr: wwdrCert,
         signerCert: signerCert,
-        signerKey: signerKey,
+        signerKey: signerCert, // .p12 contains both cert and key
         signerKeyPassphrase: process.env.APPLE_PASS_CERT_PASSWORD || "",
       },
     },
@@ -59,8 +112,8 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
       foregroundColor: "rgb(255, 255, 255)",
       backgroundColor: "rgb(99, 102, 241)", // indigo-500
       labelColor: "rgb(199, 210, 254)", // indigo-200
-      webServiceURL: `${process.env.NEXT_PUBLIC_APP_URL}/api/apple-wallet`,
-      authenticationToken: data.qrPayload, // Use qrPayload as auth token
+      webServiceURL: "https://des-rangila.vercel.app/api/apple-wallet",
+      authenticationToken: data.qrPayload,
     }
   );
 
@@ -71,15 +124,27 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
     messageEncoding: "iso-8859-1",
   });
 
-  // Primary fields
-  pass.primaryFields.push({
-    key: "name",
-    label: "ATTENDEE",
-    value: data.name,
+  // Header fields (top right — event date)
+  pass.headerFields.push({
+    key: "eventDate",
+    label: "DATE",
+    value: "11 APR",
   });
 
-  // Secondary fields
+  // Primary fields (large, center — tables visited)
+  pass.primaryFields.push({
+    key: "stamps",
+    label: "TABLES VISITED",
+    value: `${data.stampsCollected.length} / 16`,
+  });
+
+  // Secondary fields (below primary — name and PIN)
   pass.secondaryFields.push(
+    {
+      key: "attendeeName",
+      label: "NAME",
+      value: data.name,
+    },
     {
       key: "pin",
       label: "PIN",
@@ -87,34 +152,64 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
     }
   );
 
-  // Auxiliary fields
+  // Auxiliary fields (bottom — location)
   pass.auxiliaryFields.push({
-    key: "stamps",
-    label: "TABLES VISITED",
-    value: `${data.stampsCollected.length} / 16`,
+    key: "location",
+    label: "LOCATION",
+    value: "McKeldin Mall East",
   });
 
-  // Back fields
+  // Back fields — one per station showing visit status
+  for (const station of STATIONS) {
+    const visited = data.stampsCollected.includes(station.id);
+    const label = station.name;
+    const value = visited
+      ? `\u2705 ${station.activity || "Visited"}`
+      : "Not yet visited";
+
+    pass.backFields.push({
+      key: `station_${station.id.replace(/-/g, "_")}`,
+      label,
+      value,
+    });
+  }
+
+  // Back fields — event info
   pass.backFields.push(
     {
-      key: "event",
-      label: "Event",
-      value: "Des Rangila — Tour of India",
+      key: "eventName",
+      label: "EVENT",
+      value: "Des Rangila \u2014 Tour of India",
     },
     {
-      key: "date",
-      label: "Date",
-      value: "April 11, 2026 | 5–8 PM",
+      key: "hostedBy",
+      label: "HOSTED BY",
+      value: "UMD Indian Student Association",
     },
     {
-      key: "location",
-      label: "Location",
+      key: "dateTime",
+      label: "DATE & TIME",
+      value: "April 11, 2026 | 5\u20138 PM",
+    },
+    {
+      key: "eventLocation",
+      label: "LOCATION",
       value: "McKeldin Mall, University of Maryland",
     },
     {
       key: "portal",
-      label: "Your Photos & Info",
-      value: `${process.env.NEXT_PUBLIC_APP_URL}/me`,
+      label: "YOUR PHOTOS & STAMPS",
+      value: "https://des-rangila.vercel.app/me",
+    },
+    {
+      key: "support",
+      label: "SUPPORT",
+      value: "passport@desrangila.ritvik.it",
+    },
+    {
+      key: "privacy",
+      label: "PRIVACY",
+      value: "Face data is stored as a numeric vector and deleted 30 days after the event. See https://des-rangila.vercel.app/privacy for full policy.",
     }
   );
 

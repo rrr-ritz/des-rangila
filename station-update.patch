@@ -1,0 +1,222 @@
+diff --git a/app/admin/attendees/page.tsx b/app/admin/attendees/page.tsx
+index 72b4833..80db1e5 100644
+--- a/app/admin/attendees/page.tsx
++++ b/app/admin/attendees/page.tsx
+@@ -148,7 +148,7 @@ export default function AttendeesPage() {
+                           )}
+                         </td>
+                         <td className="p-3 text-center">
+-                          {a.stampsCollected?.length || 0}/16
++                          {a.stampsCollected?.length || 0}/15
+                         </td>
+                         <td className="p-3 text-center">
+                           {a.totalFoodRedemptions}/{a.maxFoodRedemptions}
+diff --git a/app/scan/page.tsx b/app/scan/page.tsx
+index 8ab87fe..4189e53 100644
+--- a/app/scan/page.tsx
++++ b/app/scan/page.tsx
+@@ -110,11 +110,11 @@ export default function ScanPage() {
+         { id: "registration", name: "Check-In", type: "registration", foodItem: null },
+         { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
+         { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
+-        { id: "punjab", name: "Punjab", type: "food", foodItem: "Mango Lassi Shots" },
++        { id: "punjab", name: "Punjab", type: "food", foodItem: "Paneer Tikka" },
+         { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
+         { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
+         { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
+-        { id: "central-india", name: "Central India", type: "food", foodItem: "Chai" },
++        { id: "central-india", name: "Central India", type: "food", foodItem: "Chai Latte Samples" },
+         { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
+         { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
+         { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
+@@ -122,6 +122,7 @@ export default function ScanPage() {
+         { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
+         { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
+         { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
++        { id: "motion-cafe", name: "Motion Cafe", type: "food", foodItem: "Drinks" },
+         { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
+       ]);
+ 
+diff --git a/components/attendee/StampPassport.tsx b/components/attendee/StampPassport.tsx
+index d4556df..e964d04 100644
+--- a/components/attendee/StampPassport.tsx
++++ b/components/attendee/StampPassport.tsx
+@@ -3,40 +3,41 @@
+ import { cn } from "@/lib/utils";
+ import { Check } from "lucide-react";
+ 
+-// All 16 stations from the design doc
++// Stampable stations (excludes registration & photo booth)
+ const STATIONS = [
+-  { id: "jammu-kashmir", name: "Jammu & Kashmir", region: "North" },
+-  { id: "punjab", name: "Punjab", region: "North" },
+-  { id: "rajasthan", name: "Rajasthan", region: "West" },
+-  { id: "gujarat", name: "Gujarat", region: "West" },
+-  { id: "maharashtra", name: "Maharashtra", region: "West" },
+-  { id: "goa", name: "Goa", region: "West" },
+-  { id: "karnataka", name: "Karnataka", region: "South" },
+-  { id: "kerala", name: "Kerala", region: "South" },
+-  { id: "tamil-nadu", name: "Tamil Nadu", region: "South" },
+-  { id: "andhra-pradesh", name: "Andhra Pradesh", region: "South" },
+-  { id: "telangana", name: "Telangana", region: "South" },
+-  { id: "odisha", name: "Odisha", region: "East" },
+-  { id: "west-bengal", name: "West Bengal", region: "East" },
+-  { id: "northeast", name: "Northeast India", region: "East" },
+-  { id: "uttar-pradesh", name: "Uttar Pradesh", region: "North" },
+-  { id: "madhya-pradesh", name: "Madhya Pradesh", region: "Central" },
++  { id: "jammu-kashmir", name: "J&K + Ladakh" },
++  { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand" },
++  { id: "punjab", name: "Punjab" },
++  { id: "haryana-rajasthan", name: "Haryana + Rajasthan" },
++  { id: "gujarat", name: "Gujarat" },
++  { id: "maharashtra", name: "Maharashtra" },
++  { id: "central-india", name: "Central India" },
++  { id: "odisha", name: "Odisha" },
++  { id: "west-bengal", name: "West Bengal" },
++  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim" },
++  { id: "andhra-telangana", name: "AP + Telangana" },
++  { id: "karnataka", name: "Karnataka" },
++  { id: "tamil-nadu", name: "Tamil Nadu" },
++  { id: "kerala", name: "Kerala" },
++  { id: "motion-cafe", name: "Motion Cafe" },
+ ];
+ 
++const TOTAL = STATIONS.length;
++
+ interface StampPassportProps {
+   stampsCollected: string[];
+ }
+ 
+ export function StampPassport({ stampsCollected }: StampPassportProps) {
+   const visited = new Set(stampsCollected);
+-  const count = visited.size;
++  const count = STATIONS.filter((s) => visited.has(s.id)).length;
+ 
+   return (
+     <div className="space-y-4">
+       <div className="flex items-center justify-between">
+         <h2 className="text-lg font-bold">Stamp Passport</h2>
+         <span className="text-sm font-medium text-muted-foreground">
+-          {count}/16 stations visited
++          {count}/{TOTAL} stations visited
+         </span>
+       </div>
+ 
+@@ -44,12 +45,12 @@ export function StampPassport({ stampsCollected }: StampPassportProps) {
+       <div className="w-full bg-muted rounded-full h-2">
+         <div
+           className="bg-primary h-2 rounded-full transition-all duration-500"
+-          style={{ width: `${(count / 16) * 100}%` }}
++          style={{ width: `${(count / TOTAL) * 100}%` }}
+         />
+       </div>
+ 
+       {/* Station grid */}
+-      <div className="grid grid-cols-4 gap-2">
++      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+         {STATIONS.map((station) => {
+           const isVisited = visited.has(station.id);
+           return (
+diff --git a/lib/email/resend.ts b/lib/email/resend.ts
+index 335a0c7..8d39fee 100644
+--- a/lib/email/resend.ts
++++ b/lib/email/resend.ts
+@@ -120,7 +120,7 @@ export async function sendPassEmail(attendee: {
+           <strong>How it works:</strong>
+         </p>
+         <ol style="font-size:14px;color:#4b5563;line-height:1.8;margin:0;padding-left:20px;">
+-          <li>Show your QR code at each of the 16 tables</li>
++          <li>Show your QR code at each table to collect stamps</li>
+           <li>A volunteer scans it to log your visit</li>
+           <li>Collect stamps and enjoy food & activities!</li>
+           <li>Visit the photo booth for a souvenir strip</li>
+@@ -215,7 +215,7 @@ export async function sendPostEventEmail(attendee: {
+         </p>
+         <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">YOU VISITED</p>
+         <p style="margin:0;font-size:32px;font-weight:bold;color:#6366f1;">
+-          ${stampCount} / 16
++          ${stampCount} / 15
+         </p>
+         <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">stations</p>
+       </div>
+diff --git a/lib/passes/apple.ts b/lib/passes/apple.ts
+index 5c329d7..2d62107 100644
+--- a/lib/passes/apple.ts
++++ b/lib/passes/apple.ts
+@@ -4,22 +4,23 @@ import fs from "fs";
+ 
+ const PASS_MODEL_DIR = path.join(process.cwd(), "public", "passModels", "desrangila.pass");
+ 
+-// All 16 stations in table order (for back fields)
++// All stations in table order (for back fields)
+ const STATIONS = [
+   { id: "jammu-kashmir", name: "JAMMU & KASHMIR + LADAKH", activity: "Hair Clip Making" },
+   { id: "himachal-uttarakhand", name: "HIMACHAL + UTTARAKHAND", activity: "Postcard Coloring" },
+-  { id: "punjab", name: "PUNJAB", activity: "Mango Lassi Shots" },
++  { id: "punjab", name: "PUNJAB", activity: "Paneer Tikka" },
+   { id: "haryana-rajasthan", name: "HARYANA + RAJASTHAN", activity: "Block Printing" },
+   { id: "gujarat", name: "GUJARAT", activity: "Dandiya Making" },
+   { id: "maharashtra", name: "MAHARASHTRA", activity: "Vada Pav" },
+-  { id: "central-india", name: "CENTRAL INDIA", activity: "Chai" },
++  { id: "central-india", name: "CENTRAL INDIA", activity: "Chai Latte Samples" },
+   { id: "odisha", name: "ODISHA", activity: "Mehendi / Henna" },
+-  { id: "west-bengal", name: "WEST BENGAL", activity: "Polaroid Photo Booth" },
++  { id: "west-bengal", name: "WEST BENGAL", activity: "Incense Bundles" },
+   { id: "seven-sisters-sikkim", name: "SEVEN SISTERS + SIKKIM", activity: "Momos" },
+   { id: "andhra-telangana", name: "ANDHRA + TELANGANA", activity: "Biryani" },
+   { id: "karnataka", name: "KARNATAKA", activity: "Idli" },
+   { id: "tamil-nadu", name: "TAMIL NADU", activity: "Uthappam" },
+   { id: "kerala", name: "KERALA", activity: "Pookalam (Flower Rangoli)" },
++  { id: "motion-cafe", name: "MOTION CAFE", activity: "Drinks" },
+   { id: "registration", name: "CHECK-IN", activity: "" },
+   { id: "photo-booth", name: "PHOTO BOOTH", activity: "" },
+ ];
+diff --git a/scripts/seed.js b/scripts/seed.js
+index 1c83c57..65fa86c 100644
+--- a/scripts/seed.js
++++ b/scripts/seed.js
+@@ -39,32 +39,34 @@ const db = getFirestore(app);
+ const stations = [
+   { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", region: "Jammu & Kashmir, Ladakh", type: "activity", activityName: "Hair Clip Making", foodItem: null, tableNumber: 1, order: 1, isActive: true },
+   { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", region: "Himachal Pradesh, Uttarakhand", type: "activity", activityName: "Postcard Coloring", foodItem: null, tableNumber: 2, order: 2, isActive: true },
+-  { id: "punjab", name: "Punjab", region: "Punjab", type: "food", activityName: null, foodItem: "Mango Lassi Shots", tableNumber: 3, order: 3, isActive: true },
++  { id: "punjab", name: "Punjab", region: "Punjab", type: "food", activityName: null, foodItem: "Paneer Tikka", tableNumber: 3, order: 3, isActive: true },
+   { id: "haryana-rajasthan", name: "Haryana + Rajasthan", region: "Haryana, Rajasthan", type: "activity", activityName: "Block Printing", foodItem: null, tableNumber: 4, order: 4, isActive: true },
+   { id: "gujarat", name: "Gujarat", region: "Gujarat", type: "activity", activityName: "Dandiya Making", foodItem: null, tableNumber: 5, order: 5, isActive: true },
+   { id: "maharashtra", name: "Maharashtra", region: "Maharashtra", type: "food", activityName: null, foodItem: "Vada Pav", tableNumber: 6, order: 6, isActive: true },
+-  { id: "central-india", name: "Central India (UP, MP, Chhattisgarh, Jharkhand, Bihar)", region: "Uttar Pradesh, Madhya Pradesh, Chhattisgarh, Jharkhand, Bihar", type: "food", activityName: null, foodItem: "Chai", tableNumber: 7, order: 7, isActive: true },
++  { id: "central-india", name: "Central India", region: "Uttar Pradesh, Madhya Pradesh, Chhattisgarh, Jharkhand, Bihar", type: "food", activityName: null, foodItem: "Chai Latte Samples", tableNumber: 7, order: 7, isActive: true },
+   { id: "odisha", name: "Odisha", region: "Odisha", type: "activity", activityName: "Mehendi / Henna", foodItem: null, tableNumber: 8, order: 8, isActive: true },
+-  { id: "west-bengal", name: "West Bengal", region: "West Bengal", type: "activity", activityName: "Polaroid Photo Booth", foodItem: null, tableNumber: 9, order: 9, isActive: true },
++  { id: "west-bengal", name: "West Bengal", region: "West Bengal", type: "activity", activityName: "Incense Bundles", foodItem: null, tableNumber: 9, order: 9, isActive: true },
+   { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", region: "Northeast India, Sikkim", type: "food", activityName: null, foodItem: "Momos", tableNumber: 10, order: 10, isActive: true },
+   { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", region: "Andhra Pradesh, Telangana", type: "food", activityName: null, foodItem: "Biryani", tableNumber: 11, order: 11, isActive: true },
+   { id: "karnataka", name: "Karnataka", region: "Karnataka", type: "food", activityName: null, foodItem: "Idli", tableNumber: 12, order: 12, isActive: true },
+   { id: "tamil-nadu", name: "Tamil Nadu", region: "Tamil Nadu", type: "food", activityName: null, foodItem: "Uthappam", tableNumber: 13, order: 13, isActive: true },
+   { id: "kerala", name: "Kerala", region: "Kerala", type: "activity", activityName: "Pookalam (Flower Rangoli)", foodItem: null, tableNumber: 14, order: 14, isActive: true },
+-  { id: "registration", name: "Check-In", region: "Registration", type: "registration", activityName: null, foodItem: null, tableNumber: 15, order: 15, isActive: true },
+-  { id: "photo-booth", name: "Photo Booth Station", region: "Photo Booth", type: "photo-booth", activityName: null, foodItem: null, tableNumber: 16, order: 16, isActive: true },
++  { id: "motion-cafe", name: "Motion Cafe", region: "Motion Cafe", type: "food", activityName: null, foodItem: "Drinks (Mango Lassi, Chai, Lychee Mojito, Cold Brew & more)", tableNumber: 15, order: 15, isActive: true },
++  { id: "registration", name: "Check-In", region: "Registration", type: "registration", activityName: null, foodItem: null, tableNumber: 16, order: 16, isActive: true },
++  { id: "photo-booth", name: "Photo Booth Station", region: "Photo Booth", type: "photo-booth", activityName: null, foodItem: null, tableNumber: 17, order: 17, isActive: true },
+ ];
+ 
+ // ── Inventory data (food stations only) ─────────────────────────────
+ // Placeholder estimates for ~200 attendees. lowStockThreshold = 25% of initialCount.
+ const inventory = [
+-  { id: "inv-punjab-lassi", stationId: "punjab", itemName: "Mango Lassi Shots", itemType: "food", initialCount: 250, remainingCount: 250, unit: "cups", lowStockThreshold: 63, depletedAt: null },
+-  { id: "inv-maharashtra-vadapav", stationId: "maharashtra", itemName: "Vada Pav", itemType: "food", initialCount: 220, remainingCount: 220, unit: "pieces", lowStockThreshold: 55, depletedAt: null },
+-  { id: "inv-central-india-chai", stationId: "central-india", itemName: "Chai", itemType: "food", initialCount: 300, remainingCount: 300, unit: "cups", lowStockThreshold: 75, depletedAt: null },
++  { id: "inv-punjab-paneer", stationId: "punjab", itemName: "Paneer Tikka", itemType: "food", initialCount: 200, remainingCount: 200, unit: "servings", lowStockThreshold: 50, depletedAt: null },
++  { id: "inv-maharashtra-vadapav", stationId: "maharashtra", itemName: "Vada Pav", itemType: "food", initialCount: 200, remainingCount: 200, unit: "pieces", lowStockThreshold: 50, depletedAt: null },
++  { id: "inv-central-india-chai", stationId: "central-india", itemName: "Chai Latte Samples", itemType: "food", initialCount: 200, remainingCount: 200, unit: "cups", lowStockThreshold: 50, depletedAt: null },
+   { id: "inv-seven-sisters-momos", stationId: "seven-sisters-sikkim", itemName: "Momos", itemType: "food", initialCount: 400, remainingCount: 400, unit: "pieces", lowStockThreshold: 100, depletedAt: null },
+-  { id: "inv-andhra-telangana-biryani", stationId: "andhra-telangana", itemName: "Biryani", itemType: "food", initialCount: 220, remainingCount: 220, unit: "servings", lowStockThreshold: 55, depletedAt: null },
++  { id: "inv-andhra-telangana-biryani", stationId: "andhra-telangana", itemName: "Biryani", itemType: "food", initialCount: 200, remainingCount: 200, unit: "servings", lowStockThreshold: 50, depletedAt: null },
+   { id: "inv-karnataka-idli", stationId: "karnataka", itemName: "Idli", itemType: "food", initialCount: 400, remainingCount: 400, unit: "pieces", lowStockThreshold: 100, depletedAt: null },
+-  { id: "inv-tamil-nadu-uthappam", stationId: "tamil-nadu", itemName: "Uthappam", itemType: "food", initialCount: 220, remainingCount: 220, unit: "pieces", lowStockThreshold: 55, depletedAt: null },
++  { id: "inv-tamil-nadu-uthappam", stationId: "tamil-nadu", itemName: "Uthappam", itemType: "food", initialCount: 200, remainingCount: 200, unit: "pieces", lowStockThreshold: 50, depletedAt: null },
++  { id: "inv-motion-cafe-drinks", stationId: "motion-cafe", itemName: "Drinks", itemType: "food", initialCount: 300, remainingCount: 300, unit: "cups", lowStockThreshold: 75, depletedAt: null },
+ ];
+ 
+ // ── Helper: delete all docs in a collection ─────────────────────────

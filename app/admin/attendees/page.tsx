@@ -148,7 +148,7 @@ export default function AttendeesPage() {
                           )}
                         </td>
                         <td className="p-3 text-center">
-                          {a.stampsCollected?.length || 0}/16
+                          {a.stampsCollected?.length || 0}/15
                         </td>
                         <td className="p-3 text-center">
                           {a.totalFoodRedemptions}/{a.maxFoodRedemptions}

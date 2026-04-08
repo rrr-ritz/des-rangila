@@ -32,7 +32,30 @@
       "Bash(git add -A)",
       "Bash(lsof -ti:3000,3001)",
       "Bash(xargs kill -9)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git update-ref:*)",
+      "Bash(rm -f .git/index .git/index.lock)",
+      "Bash(git read-tree:*)",
+      "Bash(pkill -9 -f 'git status')",
+      "Bash(pkill -9 -f 'disclaimer git')",
+      "Bash(GIT_TRACE=1 git read-tree fbde686390b4ad751b2c78915da84b9906020559)",
+      "Bash(for tree_sha in 974991f0a3b1ae771c65c114ca6df416cfa8715e 443dd18ef1be2b62d4f966253b94eb748b485068 011ce1e62cbfefc3ca98d03366a982745e5bdc65 57a1ac959439f29c08256e540d2e653549fd27d7 2e158bb32f9b384ed08ecdd90bd8e6266b8acc6f 6fc9a915a567fafa1fb2d1730dc8548ecae2d754)",
+      "Bash(do if:*)",
+      "Bash(then echo:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(printf \"100644 blob cee58ce3d405be618544e86edabfe57effa9d6f6\\\\troute.ts\\\\n\")",
+      "Bash(git mktree:*)",
+      "Bash(ls app/api/apple-wallet/v1/devices/[deviceId]/)",
+      "Bash(cp /tmp/fix-index .git/index)",
+      "Bash(GIT_INDEX_FILE=.git/index git diff --cached --name-status HEAD)",
+      "Bash(GIT_INDEX_FILE=/tmp/fix-index git diff --cached --name-status 8694f6c81d732f140325627fa20ab20df7ee6f9b)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(node scripts/clear-attendees.js)",
+      "Bash(node scripts/list-attendees.js)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" \"https://des-rangila.vercel.app/pass/DR-G995UTQ5\")",
+      "WebFetch(domain:des-rangila.vercel.app)"
     ]
   }
 }

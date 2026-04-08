@@ -4,22 +4,23 @@ import fs from "fs";
 
 const PASS_MODEL_DIR = path.join(process.cwd(), "public", "passModels", "desrangila.pass");
 
-// All 16 stations in table order (for back fields)
+// All stations in table order (for back fields)
 const STATIONS = [
   { id: "jammu-kashmir", name: "JAMMU & KASHMIR + LADAKH", activity: "Hair Clip Making" },
   { id: "himachal-uttarakhand", name: "HIMACHAL + UTTARAKHAND", activity: "Postcard Coloring" },
-  { id: "punjab", name: "PUNJAB", activity: "Mango Lassi Shots" },
+  { id: "punjab", name: "PUNJAB", activity: "Paneer Tikka" },
   { id: "haryana-rajasthan", name: "HARYANA + RAJASTHAN", activity: "Block Printing" },
   { id: "gujarat", name: "GUJARAT", activity: "Dandiya Making" },
   { id: "maharashtra", name: "MAHARASHTRA", activity: "Vada Pav" },
-  { id: "central-india", name: "CENTRAL INDIA", activity: "Chai" },
+  { id: "central-india", name: "CENTRAL INDIA", activity: "Chai Latte Samples" },
   { id: "odisha", name: "ODISHA", activity: "Mehendi / Henna" },
-  { id: "west-bengal", name: "WEST BENGAL", activity: "Polaroid Photo Booth" },
+  { id: "west-bengal", name: "WEST BENGAL", activity: "Incense Bundles" },
   { id: "seven-sisters-sikkim", name: "SEVEN SISTERS + SIKKIM", activity: "Momos" },
   { id: "andhra-telangana", name: "ANDHRA + TELANGANA", activity: "Biryani" },
   { id: "karnataka", name: "KARNATAKA", activity: "Idli" },
   { id: "tamil-nadu", name: "TAMIL NADU", activity: "Uthappam" },
   { id: "kerala", name: "KERALA", activity: "Pookalam (Flower Rangoli)" },
+  { id: "motion-cafe", name: "MOTION CAFE", activity: "Drinks" },
   { id: "registration", name: "CHECK-IN", activity: "" },
   { id: "photo-booth", name: "PHOTO BOOTH", activity: "" },
 ];

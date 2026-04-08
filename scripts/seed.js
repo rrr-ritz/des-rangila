@@ -39,32 +39,34 @@ const db = getFirestore(app);
 const stations = [
   { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", region: "Jammu & Kashmir, Ladakh", type: "activity", activityName: "Hair Clip Making", foodItem: null, tableNumber: 1, order: 1, isActive: true },
   { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", region: "Himachal Pradesh, Uttarakhand", type: "activity", activityName: "Postcard Coloring", foodItem: null, tableNumber: 2, order: 2, isActive: true },
-  { id: "punjab", name: "Punjab", region: "Punjab", type: "food", activityName: null, foodItem: "Mango Lassi Shots", tableNumber: 3, order: 3, isActive: true },
+  { id: "punjab", name: "Punjab", region: "Punjab", type: "food", activityName: null, foodItem: "Paneer Tikka", tableNumber: 3, order: 3, isActive: true },
   { id: "haryana-rajasthan", name: "Haryana + Rajasthan", region: "Haryana, Rajasthan", type: "activity", activityName: "Block Printing", foodItem: null, tableNumber: 4, order: 4, isActive: true },
   { id: "gujarat", name: "Gujarat", region: "Gujarat", type: "activity", activityName: "Dandiya Making", foodItem: null, tableNumber: 5, order: 5, isActive: true },
   { id: "maharashtra", name: "Maharashtra", region: "Maharashtra", type: "food", activityName: null, foodItem: "Vada Pav", tableNumber: 6, order: 6, isActive: true },
-  { id: "central-india", name: "Central India (UP, MP, Chhattisgarh, Jharkhand, Bihar)", region: "Uttar Pradesh, Madhya Pradesh, Chhattisgarh, Jharkhand, Bihar", type: "food", activityName: null, foodItem: "Chai", tableNumber: 7, order: 7, isActive: true },
+  { id: "central-india", name: "Central India", region: "Uttar Pradesh, Madhya Pradesh, Chhattisgarh, Jharkhand, Bihar", type: "food", activityName: null, foodItem: "Chai Latte Samples", tableNumber: 7, order: 7, isActive: true },
   { id: "odisha", name: "Odisha", region: "Odisha", type: "activity", activityName: "Mehendi / Henna", foodItem: null, tableNumber: 8, order: 8, isActive: true },
-  { id: "west-bengal", name: "West Bengal", region: "West Bengal", type: "activity", activityName: "Polaroid Photo Booth", foodItem: null, tableNumber: 9, order: 9, isActive: true },
+  { id: "west-bengal", name: "West Bengal", region: "West Bengal", type: "activity", activityName: "Incense Bundles", foodItem: null, tableNumber: 9, order: 9, isActive: true },
   { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", region: "Northeast India, Sikkim", type: "food", activityName: null, foodItem: "Momos", tableNumber: 10, order: 10, isActive: true },
   { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", region: "Andhra Pradesh, Telangana", type: "food", activityName: null, foodItem: "Biryani", tableNumber: 11, order: 11, isActive: true },
   { id: "karnataka", name: "Karnataka", region: "Karnataka", type: "food", activityName: null, foodItem: "Idli", tableNumber: 12, order: 12, isActive: true },
   { id: "tamil-nadu", name: "Tamil Nadu", region: "Tamil Nadu", type: "food", activityName: null, foodItem: "Uthappam", tableNumber: 13, order: 13, isActive: true },
   { id: "kerala", name: "Kerala", region: "Kerala", type: "activity", activityName: "Pookalam (Flower Rangoli)", foodItem: null, tableNumber: 14, order: 14, isActive: true },
-  { id: "registration", name: "Check-In", region: "Registration", type: "registration", activityName: null, foodItem: null, tableNumber: 15, order: 15, isActive: true },
-  { id: "photo-booth", name: "Photo Booth Station", region: "Photo Booth", type: "photo-booth", activityName: null, foodItem: null, tableNumber: 16, order: 16, isActive: true },
+  { id: "motion-cafe", name: "Motion Cafe", region: "Motion Cafe", type: "food", activityName: null, foodItem: "Drinks (Mango Lassi, Chai, Lychee Mojito, Cold Brew & more)", tableNumber: 15, order: 15, isActive: true },
+  { id: "registration", name: "Check-In", region: "Registration", type: "registration", activityName: null, foodItem: null, tableNumber: 16, order: 16, isActive: true },
+  { id: "photo-booth", name: "Photo Booth Station", region: "Photo Booth", type: "photo-booth", activityName: null, foodItem: null, tableNumber: 17, order: 17, isActive: true },
 ];
 
 // ── Inventory data (food stations only) ─────────────────────────────
 // Placeholder estimates for ~200 attendees. lowStockThreshold = 25% of initialCount.
 const inventory = [
-  { id: "inv-punjab-lassi", stationId: "punjab", itemName: "Mango Lassi Shots", itemType: "food", initialCount: 250, remainingCount: 250, unit: "cups", lowStockThreshold: 63, depletedAt: null },
-  { id: "inv-maharashtra-vadapav", stationId: "maharashtra", itemName: "Vada Pav", itemType: "food", initialCount: 220, remainingCount: 220, unit: "pieces", lowStockThreshold: 55, depletedAt: null },
-  { id: "inv-central-india-chai", stationId: "central-india", itemName: "Chai", itemType: "food", initialCount: 300, remainingCount: 300, unit: "cups", lowStockThreshold: 75, depletedAt: null },
+  { id: "inv-punjab-paneer", stationId: "punjab", itemName: "Paneer Tikka", itemType: "food", initialCount: 200, remainingCount: 200, unit: "servings", lowStockThreshold: 50, depletedAt: null },
+  { id: "inv-maharashtra-vadapav", stationId: "maharashtra", itemName: "Vada Pav", itemType: "food", initialCount: 200, remainingCount: 200, unit: "pieces", lowStockThreshold: 50, depletedAt: null },
+  { id: "inv-central-india-chai", stationId: "central-india", itemName: "Chai Latte Samples", itemType: "food", initialCount: 200, remainingCount: 200, unit: "cups", lowStockThreshold: 50, depletedAt: null },
   { id: "inv-seven-sisters-momos", stationId: "seven-sisters-sikkim", itemName: "Momos", itemType: "food", initialCount: 400, remainingCount: 400, unit: "pieces", lowStockThreshold: 100, depletedAt: null },
-  { id: "inv-andhra-telangana-biryani", stationId: "andhra-telangana", itemName: "Biryani", itemType: "food", initialCount: 220, remainingCount: 220, unit: "servings", lowStockThreshold: 55, depletedAt: null },
+  { id: "inv-andhra-telangana-biryani", stationId: "andhra-telangana", itemName: "Biryani", itemType: "food", initialCount: 200, remainingCount: 200, unit: "servings", lowStockThreshold: 50, depletedAt: null },
   { id: "inv-karnataka-idli", stationId: "karnataka", itemName: "Idli", itemType: "food", initialCount: 400, remainingCount: 400, unit: "pieces", lowStockThreshold: 100, depletedAt: null },
-  { id: "inv-tamil-nadu-uthappam", stationId: "tamil-nadu", itemName: "Uthappam", itemType: "food", initialCount: 220, remainingCount: 220, unit: "pieces", lowStockThreshold: 55, depletedAt: null },
+  { id: "inv-tamil-nadu-uthappam", stationId: "tamil-nadu", itemName: "Uthappam", itemType: "food", initialCount: 200, remainingCount: 200, unit: "pieces", lowStockThreshold: 50, depletedAt: null },
+  { id: "inv-motion-cafe-drinks", stationId: "motion-cafe", itemName: "Drinks", itemType: "food", initialCount: 300, remainingCount: 300, unit: "cups", lowStockThreshold: 75, depletedAt: null },
 ];
 
 // ── Helper: delete all docs in a collection ─────────────────────────

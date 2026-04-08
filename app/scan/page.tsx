@@ -110,11 +110,11 @@ export default function ScanPage() {
         { id: "registration", name: "Check-In", type: "registration", foodItem: null },
         { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
         { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
-        { id: "punjab", name: "Punjab", type: "food", foodItem: "Mango Lassi Shots" },
+        { id: "punjab", name: "Punjab", type: "food", foodItem: "Paneer Tikka" },
         { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
         { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
         { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
-        { id: "central-india", name: "Central India", type: "food", foodItem: "Chai" },
+        { id: "central-india", name: "Central India", type: "food", foodItem: "Chai Latte Samples" },
         { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
         { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
         { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
@@ -122,6 +122,7 @@ export default function ScanPage() {
         { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
         { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
         { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
+        { id: "motion-cafe", name: "Motion Cafe", type: "food", foodItem: "Drinks" },
         { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
       ]);
 

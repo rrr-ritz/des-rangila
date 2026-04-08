@@ -120,7 +120,7 @@ export async function sendPassEmail(attendee: {
           <strong>How it works:</strong>
         </p>
         <ol style="font-size:14px;color:#4b5563;line-height:1.8;margin:0;padding-left:20px;">
-          <li>Show your QR code at each of the 16 tables</li>
+          <li>Show your QR code at each table to collect stamps</li>
           <li>A volunteer scans it to log your visit</li>
           <li>Collect stamps and enjoy food & activities!</li>
           <li>Visit the photo booth for a souvenir strip</li>
@@ -215,7 +215,7 @@ export async function sendPostEventEmail(attendee: {
         </p>
         <p style="margin:0 0 4px;font-size:13px;color:#6b7280;">YOU VISITED</p>
         <p style="margin:0;font-size:32px;font-weight:bold;color:#6366f1;">
-          ${stampCount} / 16
+          ${stampCount} / 15
         </p>
         <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">stations</p>
       </div>

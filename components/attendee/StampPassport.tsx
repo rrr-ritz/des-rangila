@@ -3,25 +3,26 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
-// All 16 stations from the design doc
+// Stampable stations (excludes registration & photo booth)
 const STATIONS = [
-  { id: "jammu-kashmir", name: "Jammu & Kashmir", region: "North" },
-  { id: "punjab", name: "Punjab", region: "North" },
-  { id: "rajasthan", name: "Rajasthan", region: "West" },
-  { id: "gujarat", name: "Gujarat", region: "West" },
-  { id: "maharashtra", name: "Maharashtra", region: "West" },
-  { id: "goa", name: "Goa", region: "West" },
-  { id: "karnataka", name: "Karnataka", region: "South" },
-  { id: "kerala", name: "Kerala", region: "South" },
-  { id: "tamil-nadu", name: "Tamil Nadu", region: "South" },
-  { id: "andhra-pradesh", name: "Andhra Pradesh", region: "South" },
-  { id: "telangana", name: "Telangana", region: "South" },
-  { id: "odisha", name: "Odisha", region: "East" },
-  { id: "west-bengal", name: "West Bengal", region: "East" },
-  { id: "northeast", name: "Northeast India", region: "East" },
-  { id: "uttar-pradesh", name: "Uttar Pradesh", region: "North" },
-  { id: "madhya-pradesh", name: "Madhya Pradesh", region: "Central" },
+  { id: "jammu-kashmir", name: "J&K + Ladakh" },
+  { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand" },
+  { id: "punjab", name: "Punjab" },
+  { id: "haryana-rajasthan", name: "Haryana + Rajasthan" },
+  { id: "gujarat", name: "Gujarat" },
+  { id: "maharashtra", name: "Maharashtra" },
+  { id: "central-india", name: "Central India" },
+  { id: "odisha", name: "Odisha" },
+  { id: "west-bengal", name: "West Bengal" },
+  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim" },
+  { id: "andhra-telangana", name: "AP + Telangana" },
+  { id: "karnataka", name: "Karnataka" },
+  { id: "tamil-nadu", name: "Tamil Nadu" },
+  { id: "kerala", name: "Kerala" },
+  { id: "motion-cafe", name: "Motion Cafe" },
 ];
+
+const TOTAL = STATIONS.length;
 
 interface StampPassportProps {
   stampsCollected: string[];
@@ -29,14 +30,14 @@ interface StampPassportProps {
 
 export function StampPassport({ stampsCollected }: StampPassportProps) {
   const visited = new Set(stampsCollected);
-  const count = visited.size;
+  const count = STATIONS.filter((s) => visited.has(s.id)).length;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Stamp Passport</h2>
         <span className="text-sm font-medium text-muted-foreground">
-          {count}/16 stations visited
+          {count}/{TOTAL} stations visited
         </span>
       </div>
 
@@ -44,12 +45,12 @@ export function StampPassport({ stampsCollected }: StampPassportProps) {
       <div className="w-full bg-muted rounded-full h-2">
         <div
           className="bg-primary h-2 rounded-full transition-all duration-500"
-          style={{ width: `${(count / 16) * 100}%` }}
+          style={{ width: `${(count / TOTAL) * 100}%` }}
         />
       </div>
 
       {/* Station grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {STATIONS.map((station) => {
           const isVisited = visited.has(station.id);
           return (

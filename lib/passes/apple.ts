@@ -99,6 +99,14 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
     process.env.APPLE_WWDR_CERT_BASE64
   );
 
+  console.log("[apple-pass] cert source:", process.env.APPLE_PASS_CERT_BASE64 ? "base64" : "file");
+  console.log("[apple-pass] key source:", process.env.APPLE_PASS_KEY_BASE64 ? "base64" : "file");
+  console.log("[apple-pass] wwdr source:", process.env.APPLE_WWDR_CERT_BASE64 ? "base64" : "file");
+  console.log("[apple-pass] cert length:", signerCert.length, "key length:", signerKey.length, "wwdr length:", wwdrCert.length);
+  console.log("[apple-pass] cert starts with:", signerCert.subarray(0, 30).toString("utf8").replace(/\n/g, "\\n"));
+  console.log("[apple-pass] key starts with:", signerKey.subarray(0, 30).toString("utf8").replace(/\n/g, "\\n"));
+  console.log("[apple-pass] passphrase length:", (process.env.APPLE_PASS_CERT_PASSWORD || "").length);
+
   const pass = new PKPass(
     getPassModel(),
     {

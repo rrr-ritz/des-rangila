@@ -63,13 +63,15 @@ export function isAppleWalletConfigured(): boolean {
     process.env.APPLE_TEAM_IDENTIFIER
   );
 
-  // Need either file paths OR base64 env vars
+  // Need either file paths OR base64 env vars for cert, key, and wwdr
   const hasFileCerts = !!(
     process.env.APPLE_PASS_CERT_PATH &&
+    process.env.APPLE_PASS_KEY_PATH &&
     process.env.APPLE_WWDR_CERT_PATH
   );
   const hasBase64Certs = !!(
-    process.env.APPLE_PASS_CERT_P12_BASE64 &&
+    process.env.APPLE_PASS_CERT_BASE64 &&
+    process.env.APPLE_PASS_KEY_BASE64 &&
     process.env.APPLE_WWDR_CERT_BASE64
   );
 
@@ -87,7 +89,11 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
 
   const signerCert = loadCert(
     process.env.APPLE_PASS_CERT_PATH,
-    process.env.APPLE_PASS_CERT_P12_BASE64
+    process.env.APPLE_PASS_CERT_BASE64
+  );
+  const signerKey = loadCert(
+    process.env.APPLE_PASS_KEY_PATH,
+    process.env.APPLE_PASS_KEY_BASE64
   );
   const wwdrCert = loadCert(
     process.env.APPLE_WWDR_CERT_PATH,
@@ -100,7 +106,7 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
       certificates: {
         wwdr: wwdrCert,
         signerCert: signerCert,
-        signerKey: signerCert, // .p12 contains both cert and key
+        signerKey: signerKey,
         signerKeyPassphrase: process.env.APPLE_PASS_CERT_PASSWORD || "",
       },
     },
@@ -114,7 +120,7 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
       backgroundColor: "rgb(72, 57, 50)", // mahogany #483932
       labelColor: "rgb(180, 166, 137)", // warm tan #B4A689
       webServiceURL: "https://des-rangila.vercel.app/api/apple-wallet",
-      authenticationToken: data.qrPayload,
+      authenticationToken: data.qrPayload.padEnd(16, "0"),
     }
   );
 

@@ -125,7 +125,7 @@ export async function createWalletObject(data: GooglePassData): Promise<string> 
       type: "QR_CODE",
       value: data.qrPayload,
     },
-    hexBackgroundColor: "#6366f1",
+    hexBackgroundColor: "#483932",
   };
 
   try {
@@ -222,7 +222,7 @@ export function generateSaveUrl(data: GooglePassData): string {
             type: "QR_CODE",
             value: data.qrPayload,
           },
-          hexBackgroundColor: "#6366f1",
+          hexBackgroundColor: "#483932",
         },
       ],
     },

@@ -7,7 +7,7 @@ interface EventHeaderProps {
 export function EventHeader({ className }: EventHeaderProps) {
   return (
     <div className={cn("text-center", className)}>
-      <h1 className="text-3xl font-bold tracking-tight font-display text-[var(--color-primary)]">
+      <h1 className="text-3xl font-medium tracking-tight font-display text-[var(--color-primary)]">
         Des Rangila
       </h1>
       <p className="text-sm text-muted-foreground mt-1">

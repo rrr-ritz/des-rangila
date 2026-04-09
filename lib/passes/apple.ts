@@ -110,9 +110,9 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
       organizationName: "UMD Indian Student Association",
       passTypeIdentifier: process.env.APPLE_PASS_TYPE_IDENTIFIER!,
       teamIdentifier: process.env.APPLE_TEAM_IDENTIFIER!,
-      foregroundColor: "rgb(255, 255, 255)",
-      backgroundColor: "rgb(99, 102, 241)", // indigo-500
-      labelColor: "rgb(199, 210, 254)", // indigo-200
+      foregroundColor: "rgb(245, 230, 200)", // warm cream #F5E6C8
+      backgroundColor: "rgb(72, 57, 50)", // mahogany #483932
+      labelColor: "rgb(180, 166, 137)", // warm tan #B4A689
       webServiceURL: "https://des-rangila.vercel.app/api/apple-wallet",
       authenticationToken: data.qrPayload,
     }

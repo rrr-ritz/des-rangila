@@ -1,4 +1,3 @@
-import { EventHeader } from "@/components/shared/EventHeader";
 import { headers } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
 
@@ -37,50 +36,74 @@ export default async function PassPage({
 
   if (!attendee) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
-        <EventHeader className="mb-8" />
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Pass Not Found</h2>
-          <p className="text-muted-foreground">
-            This pass link is invalid or has expired.
-          </p>
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-[var(--color-background)]">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-border">
+          <div className="bg-[var(--color-primary)] px-6 py-7 text-center">
+            <h1 className="font-display text-[28px] font-medium text-[var(--color-text-on-primary)] tracking-wide">
+              Des Rangila
+            </h1>
+            <p className="text-xs tracking-[3px] mt-1" style={{ color: '#B4A689' }}>
+              TOUR OF INDIA
+            </p>
+          </div>
+          <div className="bg-card p-6 text-center space-y-2">
+            <h2 className="text-xl font-semibold">Pass Not Found</h2>
+            <p className="text-muted-foreground">
+              This pass link is invalid or has expired.
+            </p>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      <EventHeader className="mb-6" />
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-[var(--color-background)]">
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-border">
+        {/* Dark header */}
+        <div className="bg-[var(--color-primary)] px-6 py-7 text-center">
+          <h1 className="font-display text-[28px] font-medium text-[var(--color-text-on-primary)] tracking-wide">
+            Des Rangila
+          </h1>
+          <p className="text-xs tracking-[3px] mt-1" style={{ color: '#B4A689' }}>
+            TOUR OF INDIA
+          </p>
+        </div>
 
-      <div className="w-full max-w-sm space-y-6">
-        {/* Attendee info */}
-        <div className="bg-card border rounded-xl p-6 text-center space-y-4">
-          <div>
-            <h2 className="text-xl font-bold">{attendee.name}</h2>
-            <p className="text-sm text-muted-foreground">
-              Passport Holder
-            </p>
+        {/* Body */}
+        <div className="bg-card p-6 space-y-5">
+          {/* Event details card */}
+          <div className="bg-[var(--color-background)] rounded-xl p-4 border border-border space-y-3">
+            <div>
+              <p className="text-[11px] tracking-widest text-muted-foreground">EVENT</p>
+              <p className="text-sm font-medium mt-0.5">Des Rangila — Tour of India</p>
+            </div>
+            <div>
+              <p className="text-[11px] tracking-widest text-muted-foreground">DATE & TIME</p>
+              <p className="text-sm font-medium mt-0.5">Saturday, April 11 · 5:00–8:00 PM</p>
+            </div>
+            <div>
+              <p className="text-[11px] tracking-widest text-muted-foreground">LOCATION</p>
+              <p className="text-sm font-medium mt-0.5">McKeldin Mall East, UMD</p>
+            </div>
           </div>
 
-          {/* QR Code placeholder — rendered client-side */}
-          <QRCodeDisplay payload={params.qrPayload} />
-
-          {/* PIN display */}
-          <div className="bg-muted rounded-lg p-3">
-            <p className="text-xs text-muted-foreground mb-1">YOUR PIN</p>
-            <p className="text-2xl font-mono font-bold tracking-widest">
+          {/* PIN */}
+          <div className="text-center">
+            <p className="text-[11px] tracking-widest text-muted-foreground mb-2">YOUR PIN</p>
+            <p className="text-4xl font-medium tracking-[10px] text-[var(--color-primary)] font-mono">
               {attendee.pin}
             </p>
           </div>
-        </div>
 
-        {/* Wallet buttons */}
-        <div className="space-y-3">
+          {/* QR Code */}
+          <QRCodeDisplay payload={params.qrPayload} />
+
+          {/* Wallet buttons */}
           {isIOS && (
             <a
               href={`/api/passes/apple/${params.qrPayload}`}
-              className="flex items-center justify-center gap-2 w-full bg-black text-white rounded-lg py-3 px-4 font-medium hover:bg-black/90 transition-colors"
+              className="flex items-center justify-center w-full bg-[var(--color-accent)] text-white rounded-xl py-3.5 font-medium hover:opacity-90 transition-opacity"
             >
               Add to Apple Wallet
             </a>
@@ -88,26 +111,33 @@ export default async function PassPage({
           {isAndroid && (
             <a
               href={`/api/passes/google/${params.qrPayload}`}
-              className="flex items-center justify-center gap-2 w-full bg-[#4285f4] text-white rounded-lg py-3 px-4 font-medium hover:bg-[#4285f4]/90 transition-colors"
+              className="flex items-center justify-center w-full bg-[var(--color-primary)] text-[var(--color-text-on-primary)] rounded-xl py-3.5 font-medium hover:opacity-90 transition-opacity"
             >
               Add to Google Wallet
             </a>
           )}
           {!isIOS && !isAndroid && (
-            <p className="text-center text-sm text-muted-foreground">
-              Save this page or take a screenshot of your QR code.
-            </p>
+            <>
+              <a
+                href={`/api/passes/apple/${params.qrPayload}`}
+                className="flex items-center justify-center w-full bg-[var(--color-accent)] text-white rounded-xl py-3.5 font-medium hover:opacity-90 transition-opacity"
+              >
+                Add to Apple Wallet
+              </a>
+              <a
+                href={`/api/passes/google/${params.qrPayload}`}
+                className="flex items-center justify-center w-full bg-[var(--color-primary)] text-[var(--color-text-on-primary)] rounded-xl py-3.5 font-medium hover:opacity-90 transition-opacity"
+              >
+                Add to Google Wallet
+              </a>
+            </>
           )}
         </div>
 
-        {/* Info footer */}
-        <div className="text-center text-xs text-muted-foreground space-y-1">
-          <p>Show this QR code at each table to participate.</p>
-          <p>
-            View your photos and stamps at{" "}
-            <a href="/me" className="underline">
-              desrangila.app/me
-            </a>
+        {/* Footer */}
+        <div className="bg-card border-t border-border px-6 py-4 text-center">
+          <p className="text-[11px] text-muted-foreground">
+            Indian Student Association · University of Maryland
           </p>
         </div>
       </div>

@@ -12,13 +12,13 @@ export default function Home() {
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <a
             href="/admin/login"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
           >
             Admin Dashboard
           </a>
           <a
             href="/me"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-6 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-6 py-2.5 text-sm font-medium hover:bg-secondary transition-colors"
           >
             Attendee Portal
           </a>

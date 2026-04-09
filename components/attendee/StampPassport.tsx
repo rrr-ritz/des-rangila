@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
-// Stampable stations (excludes registration & photo booth)
 const STATIONS = [
   { id: "jammu-kashmir", name: "J&K + Ladakh" },
   { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand" },
@@ -24,6 +23,9 @@ const STATIONS = [
 
 const TOTAL = STATIONS.length;
 
+// Deterministic rotation per station for the "hand-stamped" feel
+const ROTATIONS = [-2, 1, -1, 2, -3, 1, -2, 3, -1, 2, -2, 1, 3, -1, 2];
+
 interface StampPassportProps {
   stampsCollected: string[];
 }
@@ -35,43 +37,39 @@ export function StampPassport({ stampsCollected }: StampPassportProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Stamp Passport</h2>
-        <span className="text-sm font-medium text-muted-foreground">
-          {count}/{TOTAL} stations visited
+        <h2 className="text-base font-medium">Stamp passport</h2>
+        <span className="text-sm text-muted-foreground">
+          {count}/{TOTAL} visited
         </span>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-muted rounded-full h-2">
+      {/* Progress bar — saffron fill */}
+      <div className="w-full bg-border rounded-full h-1.5">
         <div
-          className="bg-primary h-2 rounded-full transition-all duration-500"
+          className="bg-accent h-1.5 rounded-full transition-all duration-500"
           style={{ width: `${(count / TOTAL) * 100}%` }}
         />
       </div>
 
       {/* Station grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-        {STATIONS.map((station) => {
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+        {STATIONS.map((station, i) => {
           const isVisited = visited.has(station.id);
           return (
             <div
               key={station.id}
               className={cn(
-                "aspect-square rounded-lg border-2 flex flex-col items-center justify-center p-1 text-center transition-all",
+                "aspect-square rounded-lg flex flex-col items-center justify-center p-1 text-center transition-all",
                 isVisited
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-muted/30 opacity-50"
+                  ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)] border-2 border-[var(--color-primary)]"
+                  : "bg-transparent text-muted-foreground border-2 border-dashed border-border"
               )}
+              style={isVisited ? { transform: `rotate(${ROTATIONS[i]}deg)` } : undefined}
             >
               {isVisited && (
-                <Check className="h-4 w-4 text-primary mb-0.5" />
+                <Check className="h-3.5 w-3.5 mb-0.5" style={{ color: 'var(--color-text-on-primary)' }} />
               )}
-              <span
-                className={cn(
-                  "text-[10px] leading-tight font-medium",
-                  isVisited ? "text-primary" : "text-muted-foreground"
-                )}
-              >
+              <span className="text-[9px] leading-tight font-medium">
                 {station.name}
               </span>
             </div>

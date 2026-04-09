@@ -4,8 +4,8 @@
   "description": "Digital passport for Des Rangila — Tour of India festival",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#6366f1",
+  "background_color": "#483932",
+  "theme_color": "#483932",
   "orientation": "portrait-primary",
   "icons": [
     {

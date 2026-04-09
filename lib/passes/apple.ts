@@ -1,8 +1,7 @@
 import { PKPass } from "passkit-generator";
 import path from "path";
 import fs from "fs";
-
-const PASS_MODEL_DIR = path.join(process.cwd(), "public", "passModels", "desrangila.pass");
+import { getPassModel } from "./model";
 
 // All stations in table order (for back fields)
 const STATIONS = [
@@ -100,15 +99,13 @@ export async function generateApplePass(data: ApplePassData): Promise<Buffer> {
     process.env.APPLE_WWDR_CERT_BASE64
   );
 
-  const pass = await PKPass.from(
+  const pass = new PKPass(
+    getPassModel(),
     {
-      model: PASS_MODEL_DIR,
-      certificates: {
-        wwdr: wwdrCert,
-        signerCert: signerCert,
-        signerKey: signerKey,
-        signerKeyPassphrase: process.env.APPLE_PASS_CERT_PASSWORD || "",
-      },
+      wwdr: wwdrCert,
+      signerCert: signerCert,
+      signerKey: signerKey,
+      signerKeyPassphrase: process.env.APPLE_PASS_CERT_PASSWORD || "",
     },
     {
       serialNumber: data.qrPayload,

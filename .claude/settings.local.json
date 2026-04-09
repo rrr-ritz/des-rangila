@@ -55,7 +55,14 @@
       "Bash(node scripts/clear-attendees.js)",
       "Bash(node scripts/list-attendees.js)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" \"https://des-rangila.vercel.app/pass/DR-G995UTQ5\")",
-      "WebFetch(domain:des-rangila.vercel.app)"
+      "WebFetch(domain:des-rangila.vercel.app)",
+      "Bash(gh api:*)",
+      "Bash(xargs -I{} gh api repos/rrr-ritz/des-rangila/deployments/{}/statuses --jq '.[0] | {state, description, created_at, target_url}')",
+      "Bash(rtk rewrite:*)",
+      "Bash(xargs -I{} gh api repos/rrr-ritz/des-rangila/deployments/{}/statuses --jq '.[0] | {state, description}')",
+      "Bash(unzip -p /tmp/test-pass.pkpass pass.json)",
+      "Bash(python3 -m json.tool)",
+      "Bash(open /tmp/test-pass.pkpass)"
     ]
   }
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  signInAnonymously,
+  signInWithCustomToken,
   type ConfirmationResult,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
@@ -51,20 +51,27 @@ export default function StaffPage() {
       if (!auth) throw new Error("Firebase not configured");
       const e164Phone = formatE164(volPhone);
 
-      // Dev bypass: skip SMS for test number, sign in anonymously
+      // Dev bypass: skip SMS entirely for test number
       if (e164Phone === "+11111111111") {
-        const anonResult = await signInAnonymously(auth);
-        if (anonResult.user) {
-          const token = await anonResult.user.getIdToken();
-          // Link anonymous user to the dev volunteer doc
-          await fetch("/api/volunteers/register", {
+        try {
+          const res = await fetch("/api/dev-login", {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ name: "Dev Test", phone: "+11111111111" }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: "+11111111111" }),
           });
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || "Dev login API failed");
+          }
+          const { customToken } = await res.json();
+          await signInWithCustomToken(auth, customToken);
+          setVolStep("done");
+          setTimeout(() => router.push("/scan"), 1000);
+        } catch (err) {
+          setVolError(
+            `Dev login failed: ${err instanceof Error ? err.message : "Unknown error"}`
+          );
         }
-        setVolStep("done");
-        setTimeout(() => router.push("/scan"), 1500);
         setVolLoading(false);
         return;
       }

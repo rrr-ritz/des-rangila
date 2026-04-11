@@ -18,13 +18,15 @@ export async function GET(
   const snapshot = await adminDb
     .collection("redemptions")
     .where("attendeeId", "==", params.id)
-    .orderBy("timestamp", "desc")
     .get();
 
-  const redemptions = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+  const redemptions = snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => {
+      const aT = (a as Record<string, unknown>).timestamp as { _seconds?: number; seconds?: number } | undefined;
+      const bT = (b as Record<string, unknown>).timestamp as { _seconds?: number; seconds?: number } | undefined;
+      return (bT?._seconds || bT?.seconds || 0) - (aT?._seconds || aT?.seconds || 0);
+    });
 
   return NextResponse.json({ redemptions });
 }

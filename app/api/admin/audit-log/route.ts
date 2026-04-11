@@ -17,21 +17,28 @@ export async function GET(request: NextRequest) {
   const severity = searchParams.get("severity");
   const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 500);
 
-  let query = adminDb
+  // Fetch without orderBy/where to avoid composite index requirements; filter + sort in JS.
+  const snapshot = await adminDb
     .collection("audit_log")
-    .orderBy("timestamp", "desc") as FirebaseFirestore.Query;
+    .limit(limit)
+    .get();
 
+  let entries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  // Filter in JS
   if (action) {
-    query = query.where("action", "==", action);
+    entries = entries.filter((e) => (e as Record<string, unknown>).action === action);
   }
   if (severity) {
-    query = query.where("severity", "==", severity);
+    entries = entries.filter((e) => (e as Record<string, unknown>).severity === severity);
   }
 
-  query = query.limit(limit);
-
-  const snapshot = await query.get();
-  const entries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  // Sort by timestamp descending
+  entries.sort((a, b) => {
+    const aT = (a as Record<string, unknown>).timestamp as { _seconds?: number; seconds?: number } | undefined;
+    const bT = (b as Record<string, unknown>).timestamp as { _seconds?: number; seconds?: number } | undefined;
+    return (bT?._seconds || bT?.seconds || 0) - (aT?._seconds || aT?.seconds || 0);
+  });
 
   return NextResponse.json({ entries, count: entries.length });
 }

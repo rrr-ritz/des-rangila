@@ -66,15 +66,18 @@ export async function POST(request: NextRequest) {
     const station = stationDoc.data()!;
 
     // Check if already redeemed at this station for this item type
-    const existingRedemption = await adminDb
+    // Single where() to avoid composite index; filter remaining fields in JS.
+    const attendeeRedemptions = await adminDb
       .collection("redemptions")
       .where("attendeeId", "==", attendeeId)
-      .where("stationId", "==", stationId)
-      .where("itemType", "==", itemType)
-      .limit(1)
       .get();
 
-    if (!existingRedemption.empty) {
+    const alreadyRedeemed = attendeeRedemptions.docs.some((doc) => {
+      const d = doc.data();
+      return d.stationId === stationId && d.itemType === itemType;
+    });
+
+    if (alreadyRedeemed) {
       throw new Error("Already redeemed at this station");
     }
 

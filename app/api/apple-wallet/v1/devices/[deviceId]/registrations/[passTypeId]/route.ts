@@ -30,18 +30,22 @@ export async function GET(
   const passesUpdatedSince = searchParams.get("passesUpdatedSince");
 
   try {
-    // Find all registrations for this device and pass type
+    // Find all registrations for this device; filter passTypeId in JS
+    // to avoid composite index requirement.
     const snapshot = await adminDb
       .collection("apple_wallet_registrations")
       .where("deviceId", "==", deviceId)
-      .where("passTypeId", "==", passTypeId)
       .get();
 
-    if (snapshot.empty) {
+    const matchingDocs = snapshot.docs.filter(
+      (doc) => doc.data().passTypeId === passTypeId
+    );
+
+    if (matchingDocs.length === 0) {
       return new NextResponse(null, { status: 204 });
     }
 
-    const serialNumbers = snapshot.docs.map(
+    const serialNumbers = matchingDocs.map(
       (doc) => doc.data().serialNumber as string
     );
 

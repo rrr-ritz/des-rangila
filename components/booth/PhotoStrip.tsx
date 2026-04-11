@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, RotateCcw, Check } from "lucide-react";
+import { RotateCcw, Check } from "lucide-react";
 
 interface PhotoStripProps {
   photos: string[];
@@ -119,14 +119,6 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
     onSave(stripUrl, thumbUrl);
   };
 
-  const handleDownload = () => {
-    if (!stripUrl) return;
-    const a = document.createElement("a");
-    a.href = stripUrl;
-    a.download = `des-rangila-photobooth-${Date.now()}.jpg`;
-    a.click();
-  };
-
   return (
     <div className="space-y-6">
       {/* Preview */}
@@ -144,10 +136,6 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
         <Button variant="outline" onClick={onRetake} disabled={saving}>
           <RotateCcw className="h-4 w-4 mr-2" />
           Retake
-        </Button>
-        <Button variant="outline" onClick={handleDownload} disabled={!stripUrl}>
-          <Download className="h-4 w-4 mr-2" />
-          Download
         </Button>
         <Button onClick={handleSave} disabled={!stripUrl || saving}>
           <Check className="h-4 w-4 mr-2" />

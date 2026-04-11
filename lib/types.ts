@@ -41,6 +41,7 @@ export interface Attendee {
   maxFoodRedemptions: number;
   walletPassGenerated: boolean;
   walletPassType: WalletPassType | null;
+  phone?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -33,6 +33,7 @@ interface AttendeeInfo {
 interface WalkInAttendee {
   id: string;
   name: string;
+  phone: string;
   email: string;
   pin: string;
   qrPayload: string;
@@ -63,9 +64,10 @@ export default function ScanPage() {
   const [walkInStep, setWalkInStep] = useState<WalkInStep>("form");
   const [walkInName, setWalkInName] = useState("");
   const [walkInEmail, setWalkInEmail] = useState("");
+  const [walkInPhone, setWalkInPhone] = useState("");
   const [walkInError, setWalkInError] = useState("");
   const [walkInAttendee, setWalkInAttendee] = useState<WalkInAttendee | null>(null);
-  const [walkInEmailSent, setWalkInEmailSent] = useState(false);
+  const [walkInSmsSent, setWalkInSmsSent] = useState(false);
   const [walkInAlreadyExists, setWalkInAlreadyExists] = useState(false);
 
   // Use a ref for pause state so the QRScanner callback doesn't need
@@ -265,9 +267,10 @@ export default function ScanPage() {
     setWalkInStep("form");
     setWalkInName("");
     setWalkInEmail("");
+    setWalkInPhone("");
     setWalkInError("");
     setWalkInAttendee(null);
-    setWalkInEmailSent(false);
+    setWalkInSmsSent(false);
     setWalkInAlreadyExists(false);
     pausedRef.current = true;
   }
@@ -277,6 +280,7 @@ export default function ScanPage() {
     setWalkInStep("form");
     setWalkInName("");
     setWalkInEmail("");
+    setWalkInPhone("");
     setWalkInError("");
     setWalkInAttendee(null);
     pausedRef.current = false;
@@ -288,8 +292,9 @@ export default function ScanPage() {
       setWalkInError("Name is required");
       return;
     }
-    if (!walkInEmail.trim() || !walkInEmail.includes("@")) {
-      setWalkInError("Valid email is required");
+    const phoneDigits = walkInPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      setWalkInError("Valid phone number is required");
       return;
     }
 
@@ -306,7 +311,8 @@ export default function ScanPage() {
         },
         body: JSON.stringify({
           name: walkInName.trim(),
-          email: walkInEmail.trim(),
+          phone: walkInPhone.trim(),
+          email: walkInEmail.trim() || undefined,
         }),
       });
 
@@ -319,7 +325,7 @@ export default function ScanPage() {
       }
 
       setWalkInAttendee(data.attendee);
-      setWalkInEmailSent(data.emailSent || false);
+      setWalkInSmsSent(data.smsSent || false);
       setWalkInAlreadyExists(data.alreadyExists || false);
 
       // Move to selfie capture step
@@ -413,8 +419,20 @@ export default function ScanPage() {
                 />
               </div>
               <div className="space-y-2">
+                <label htmlFor="walkin-phone" className="text-sm font-medium">
+                  Phone Number
+                </label>
+                <Input
+                  id="walkin-phone"
+                  type="tel"
+                  placeholder="(301) 555-1234"
+                  value={walkInPhone}
+                  onChange={(e) => setWalkInPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
                 <label htmlFor="walkin-email" className="text-sm font-medium">
-                  Email
+                  Email <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
                 <Input
                   id="walkin-email"
@@ -468,9 +486,9 @@ export default function ScanPage() {
                 <p className="text-2xl font-mono font-bold text-primary tracking-[0.3em]">
                   {walkInAttendee.pin}
                 </p>
-                {walkInEmailSent && (
+                {walkInSmsSent && (
                   <p className="text-xs text-green-600">
-                    Pass email sent to {walkInAttendee.email}
+                    Passport link texted to {walkInAttendee.phone}
                   </p>
                 )}
               </div>
@@ -500,9 +518,9 @@ export default function ScanPage() {
                 <p className="text-3xl font-mono font-bold text-primary tracking-[0.3em]">
                   {walkInAttendee.pin}
                 </p>
-                {walkInEmailSent && (
+                {walkInSmsSent && (
                   <p className="text-xs text-green-600">
-                    Digital passport emailed to {walkInAttendee.email}
+                    Passport link texted to {walkInAttendee.phone}
                   </p>
                 )}
               </div>

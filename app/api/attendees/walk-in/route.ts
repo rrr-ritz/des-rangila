@@ -4,13 +4,13 @@ import { Timestamp } from "firebase-admin/firestore";
 import { generatePin, generateQrPayload } from "@/lib/pin";
 import { verifyAuth, AuthError } from "@/lib/auth-helpers";
 import { logAction } from "@/lib/audit";
-import { sendPassEmail, isEmailConfigured } from "@/lib/email/resend";
+import { sendPassSMS, isSmsConfigured } from "@/lib/sms/twilio";
 
 /**
  * POST /api/attendees/walk-in
  * Register a walk-in attendee on the spot.
- * Accepts { name, email }, generates PIN + QR, creates Firestore doc,
- * sends pass email, and returns the created attendee.
+ * Accepts { name, phone, email? }, generates PIN + QR, creates Firestore doc,
+ * sends SMS with PIN + passport link, and returns the created attendee.
  * Requires volunteer or admin auth.
  */
 export async function POST(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, email } = body;
+    const { name, phone, email } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json(
@@ -36,19 +36,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!email || typeof email !== "string" || !email.includes("@")) {
+    if (!phone || typeof phone !== "string" || phone.trim().length < 10) {
       return NextResponse.json(
-        { error: "Valid email is required" },
+        { error: "Valid phone number is required" },
         { status: 400 }
       );
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    // Normalize phone: strip non-digits, ensure +1 prefix for US numbers
+    const digits = phone.replace(/\D/g, "");
+    const normalizedPhone = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : phone.trim();
 
-    // Check for duplicate email
+    const normalizedEmail = email ? String(email).trim().toLowerCase() : "";
+
+    // Check for duplicate phone
     const existingSnapshot = await adminDb
       .collection("attendees")
-      .where("email", "==", normalizedEmail)
+      .where("phone", "==", normalizedPhone)
       .limit(1)
       .get();
 
@@ -60,6 +64,7 @@ export async function POST(request: NextRequest) {
         attendee: {
           id: existingDoc.id,
           name: existingData.name,
+          phone: existingData.phone,
           email: existingData.email,
           pin: existingData.pin,
           qrPayload: existingData.qrPayload,
@@ -99,6 +104,7 @@ export async function POST(request: NextRequest) {
       qrPayload,
       name: name.trim(),
       email: normalizedEmail,
+      phone: normalizedPhone,
       checkedIn: true,
       checkedInAt: now,
       faceDescriptor: null,
@@ -122,29 +128,27 @@ export async function POST(request: NextRequest) {
       actorRole: auth.volunteer?.role || "volunteer",
       targetId: ref.id,
       targetType: "attendee",
-      details: { name: name.trim(), email: normalizedEmail },
+      details: { name: name.trim(), phone: normalizedPhone },
       severity: "info",
       notifyAdmins: false,
     });
 
-    // Send pass email in background (don't block response)
-    let emailSent = false;
-    if (isEmailConfigured()) {
+    // Send SMS with PIN + passport link
+    const passUrl = `https://desrangila.ritvik.it/pass/${ref.id}`;
+    let smsSent = false;
+    let smsError = false;
+    if (isSmsConfigured()) {
       try {
-        const result = await sendPassEmail({
-          name: name.trim(),
-          email: normalizedEmail,
-          pin,
-          qrPayload,
-        });
-        emailSent = result.success;
+        const result = await sendPassSMS(normalizedPhone, pin, passUrl);
+        smsSent = result.success;
+        smsError = !result.success;
 
         if (result.success) {
-          // Mark pass email as sent
-          await ref.update({ passEmailSentAt: now });
+          await ref.update({ smsSentAt: now });
         }
       } catch {
-        // Email failure is non-critical — attendee is still registered
+        // SMS failure is non-critical — attendee is still registered
+        smsError = true;
       }
     }
 
@@ -152,13 +156,15 @@ export async function POST(request: NextRequest) {
       attendee: {
         id: ref.id,
         name: name.trim(),
+        phone: normalizedPhone,
         email: normalizedEmail,
         pin,
         qrPayload,
         checkedIn: true,
       },
       alreadyExists: false,
-      emailSent,
+      smsSent,
+      smsError,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Walk-in registration failed";

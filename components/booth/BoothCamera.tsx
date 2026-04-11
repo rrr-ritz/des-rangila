@@ -26,6 +26,7 @@ export function BoothCamera({
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
+  const [waitingForStart, setWaitingForStart] = useState(true);
   const countdownActiveRef = useRef(false);
   const lastAutoPhotoRef = useRef(0);
 
@@ -78,10 +79,24 @@ export function BoothCamera({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Center-crop video to match 4:3 target without distortion
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const targetAspect = 600 / 450;
+    const srcAspect = vw / vh;
+    let sx = 0, sy = 0, sw = vw, sh = vh;
+    if (srcAspect > targetAspect) {
+      sw = vh * targetAspect;
+      sx = (vw - sw) / 2;
+    } else {
+      sh = vw / targetAspect;
+      sy = (vh - sh) / 2;
+    }
+
     // Mirror the image (front-facing camera)
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
@@ -91,8 +106,8 @@ export function BoothCamera({
   const startCountdown = useCallback(() => {
     if (countdownActiveRef.current) return;
     countdownActiveRef.current = true;
-    setCountdown(3);
-    let count = 3;
+    setCountdown(5);
+    let count = 5;
     const interval = setInterval(() => {
       count--;
       if (count > 0) {
@@ -108,18 +123,23 @@ export function BoothCamera({
     }, 1000);
   }, [capturePhoto]);
 
-  // Auto-fire: start countdown when camera is ready and currentPhoto changes
+  // Handle manual start tap — begins first countdown
+  const handleStart = useCallback(() => {
+    setWaitingForStart(false);
+    startCountdown();
+  }, [startCountdown]);
+
+  // Auto-fire: after photo 1, automatically start countdown for subsequent photos
   useEffect(() => {
-    if (!autoStart || !cameraReady) return;
+    if (!autoStart || !cameraReady || waitingForStart) return;
+    // Only auto-fire for photos 2+
+    if (currentPhoto <= 1) return;
     if (lastAutoPhotoRef.current === currentPhoto) return;
     lastAutoPhotoRef.current = currentPhoto;
 
-    // First photo: short delay so user can see themselves
-    // Subsequent photos: 1-second pause to adjust pose
-    const delay = currentPhoto === 1 ? 800 : 1000;
-    const timer = setTimeout(() => startCountdown(), delay);
+    const timer = setTimeout(() => startCountdown(), 1000);
     return () => clearTimeout(timer);
-  }, [autoStart, cameraReady, currentPhoto, startCountdown]);
+  }, [autoStart, cameraReady, currentPhoto, startCountdown, waitingForStart]);
 
   if (cameraError) {
     return (
@@ -148,6 +168,18 @@ export function BoothCamera({
           className="w-full h-full object-cover"
           style={{ transform: "scaleX(-1)", filter: "brightness(1.2)" }}
         />
+
+        {/* Start button overlay — shown before first photo */}
+        {autoStart && waitingForStart && cameraReady && countdown === null && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <button
+              onClick={handleStart}
+              className="bg-white text-black font-bold text-2xl px-12 py-5 rounded-2xl shadow-2xl active:scale-95 transition-transform"
+            >
+              Start
+            </button>
+          </div>
+        )}
 
         {/* Countdown overlay */}
         {countdown !== null && (

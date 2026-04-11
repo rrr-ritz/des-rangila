@@ -48,10 +48,30 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
         const x = BORDER;
         const y = BORDER + i * (PHOTO_HEIGHT + PHOTO_GAP);
 
-        // Draw photo in grayscale — edge-to-edge, no individual borders
-        ctx.filter = "grayscale(100%)";
-        ctx.drawImage(img, x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
-        ctx.filter = "none";
+        // Center-crop source image to match target aspect ratio (no distortion)
+        const targetAspect = PHOTO_WIDTH / PHOTO_HEIGHT;
+        const srcAspect = img.naturalWidth / img.naturalHeight;
+        let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+        if (srcAspect > targetAspect) {
+          // Source is wider — crop sides
+          sw = img.naturalHeight * targetAspect;
+          sx = (img.naturalWidth - sw) / 2;
+        } else {
+          // Source is taller — crop top/bottom
+          sh = img.naturalWidth / targetAspect;
+          sy = (img.naturalHeight - sh) / 2;
+        }
+
+        ctx.drawImage(img, sx, sy, sw, sh, x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
+
+        // Convert to grayscale manually (ctx.filter not supported everywhere)
+        const imageData = ctx.getImageData(x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
+        const d = imageData.data;
+        for (let p = 0; p < d.length; p += 4) {
+          const gray = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
+          d[p] = d[p + 1] = d[p + 2] = gray;
+        }
+        ctx.putImageData(imageData, x, y);
 
         loaded++;
         if (loaded === photos.length) {

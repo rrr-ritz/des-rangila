@@ -54,6 +54,7 @@ export default function CheckInPage() {
   const [attendee, setAttendee] = useState<CreatedAttendee | null>(null);
   const [smsStatus, setSmsStatus] = useState<"pending" | "sent" | "error" | null>(null);
   const [alreadyExists, setAlreadyExists] = useState(false);
+  const [authToken, setAuthToken] = useState<string>("");
 
   // Load all attendees on mount for autocomplete
   const fetchAllAttendees = useCallback(async () => {
@@ -140,6 +141,7 @@ export default function CheckInPage() {
 
     try {
       const token = await user.getIdToken();
+      setAuthToken(token);
       const res = await fetch(`/api/attendees/${selectedAttendee.id}/check-in`, {
         method: "PATCH",
         headers: {
@@ -214,6 +216,7 @@ export default function CheckInPage() {
 
     try {
       const token = await user.getIdToken();
+      setAuthToken(token);
       const res = await fetch("/api/attendees/walk-in", {
         method: "POST",
         headers: {
@@ -417,6 +420,7 @@ export default function CheckInPage() {
         <SelfieCapture
           attendeeId={attendee.id}
           attendeeName={attendee.name}
+          authToken={authToken}
           onComplete={() => setStep("confirm")}
           onSkip={() => setStep("confirm")}
         />

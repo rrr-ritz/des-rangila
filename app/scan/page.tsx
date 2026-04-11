@@ -25,6 +25,7 @@ interface AttendeeInfo {
   stampsCollected: string[];
   totalFoodRedemptions: number;
   maxFoodRedemptions: number;
+  selfieStorageUrl?: string;
 }
 
 // Hardcoded station list for offline fallback

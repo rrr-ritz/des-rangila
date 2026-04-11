@@ -6,14 +6,18 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Volunteer auth — selfie capture happens at check-in station
+  // Accept both volunteer and admin auth (admins use this from check-in page)
   try {
     await verifyAuth(request, "volunteer");
-  } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
+  } catch {
+    try {
+      await verifyAuth(request, "admin");
+    } catch (e2) {
+      if (e2 instanceof AuthError) {
+        return NextResponse.json({ error: e2.message }, { status: e2.status });
+      }
+      throw e2;
     }
-    throw e;
   }
 
   const { id } = params;

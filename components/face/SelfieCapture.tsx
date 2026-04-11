@@ -7,6 +7,7 @@ import { Camera, Check, X, Loader2, RotateCcw } from "lucide-react";
 interface SelfieCaptureProps {
   attendeeId: string;
   attendeeName: string;
+  authToken?: string;
   onComplete: (descriptor: number[] | null) => void;
   onSkip: () => void;
 }
@@ -14,6 +15,7 @@ interface SelfieCaptureProps {
 export function SelfieCapture({
   attendeeId,
   attendeeName,
+  authToken,
   onComplete,
   onSkip,
 }: SelfieCaptureProps) {
@@ -96,9 +98,11 @@ export function SelfieCapture({
 
       // Send descriptor + selfie image to API
       const descriptorArray = Array.from(descriptor);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
       const res = await fetch(`/api/attendees/${attendeeId}/face`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ descriptor: descriptorArray, selfieImageBase64 }),
       });
 
@@ -215,7 +219,7 @@ export function SelfieCapture({
     );
   }
 
-  // DONE SCREEN
+  // DONE SCREEN — auto-advance after brief confirmation
   return (
     <div className="max-w-md mx-auto text-center space-y-4 py-12">
       <Check className="h-12 w-12 mx-auto text-green-500" />
@@ -225,6 +229,9 @@ export function SelfieCapture({
           Your event photos will be automatically linked to your profile.
         </p>
       </div>
+      <Button variant="outline" onClick={() => onComplete(null)}>
+        Continue
+      </Button>
     </div>
   );
 }

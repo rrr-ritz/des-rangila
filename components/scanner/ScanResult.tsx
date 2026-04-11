@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AttendeeInfo {
@@ -12,6 +12,7 @@ interface AttendeeInfo {
   stampsCollected: string[];
   totalFoodRedemptions: number;
   maxFoodRedemptions: number;
+  selfieStorageUrl?: string;
 }
 
 interface ScanResultProps {
@@ -172,11 +173,49 @@ export function ScanResult({
     );
   }
 
+  const canActivity = !hasVisited && (stationType === "activity" || stationType === "both");
+  const canFood = !hasVisited && !foodLimitReached && !!foodItem && (stationType === "food" || stationType === "both");
+
+  async function handleRedeemBoth() {
+    setRedeeming(true);
+    try {
+      // Redeem food first, then activity
+      await onRedeem(foodItem!);
+      await onRedeem("activity");
+      setResult({ type: "success", message: "Redeemed!" });
+      try { navigator.vibrate(200); } catch {}
+      if (soundEnabled) playSuccessBeep();
+      setTimeout(onDismiss, 3000);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Redemption failed";
+      if (msg.includes("Already redeemed")) {
+        setResult({ type: "warning", message: msg });
+      } else {
+        setResult({ type: "error", message: msg });
+      }
+      try { navigator.vibrate([50, 50, 50]); } catch {}
+    } finally {
+      setRedeeming(false);
+    }
+  }
+
   // === ATTENDEE INFO — Readable card with redeem actions ===
   return (
     <div className="bg-white dark:bg-card rounded-2xl p-5 space-y-4 shadow-2xl max-w-sm w-full">
-      {/* Attendee info */}
-      <div className="text-center">
+      {/* Attendee info with selfie */}
+      <div className="text-center space-y-3">
+        <div className="mx-auto w-20 h-20 rounded-full overflow-hidden bg-gray-100 dark:bg-muted flex items-center justify-center">
+          {attendee.selfieStorageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={attendee.selfieStorageUrl}
+              alt={attendee.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="h-10 w-10 text-gray-400" />
+          )}
+        </div>
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
           {attendee.name}
         </h3>
@@ -247,30 +286,40 @@ export function ScanResult({
 
       {/* Action buttons — 48px minimum height for outdoor use */}
       <div className="space-y-2">
-        {foodItem &&
-          !hasVisited &&
-          !foodLimitReached &&
-          (stationType === "food" || stationType === "both") && (
-            <Button
-              className="w-full min-h-[48px] text-base font-semibold"
-              onClick={() => handleRedeem(foodItem)}
-              disabled={redeeming}
-            >
-              {redeeming ? "Processing..." : `Redeem ${foodItem}`}
-            </Button>
-          )}
+        {/* Both button — only for stations with both activity AND food available */}
+        {canActivity && canFood && (
+          <Button
+            className="w-full min-h-[48px] text-base font-semibold"
+            onClick={handleRedeemBoth}
+            disabled={redeeming}
+          >
+            {redeeming ? "Processing..." : "Redeem Both"}
+          </Button>
+        )}
 
-        {!hasVisited &&
-          (stationType === "activity" || stationType === "both") && (
-            <Button
-              className="w-full min-h-[48px] text-base font-semibold"
-              variant={foodItem ? "outline" : "default"}
-              onClick={() => handleRedeem("activity")}
-              disabled={redeeming}
-            >
-              {redeeming ? "Processing..." : "Complete Activity"}
-            </Button>
-          )}
+        {/* Food-only button */}
+        {canFood && (
+          <Button
+            className="w-full min-h-[48px] text-base font-semibold"
+            variant={canActivity ? "outline" : "default"}
+            onClick={() => handleRedeem(foodItem!)}
+            disabled={redeeming}
+          >
+            {redeeming ? "Processing..." : `Redeem Food`}
+          </Button>
+        )}
+
+        {/* Activity-only button */}
+        {canActivity && (
+          <Button
+            className="w-full min-h-[48px] text-base font-semibold"
+            variant={canFood ? "outline" : "default"}
+            onClick={() => handleRedeem("activity")}
+            disabled={redeeming}
+          >
+            {redeeming ? "Processing..." : "Redeem Activity"}
+          </Button>
+        )}
 
         {hasVisited && (
           <p className="text-center text-sm font-medium text-gray-400">

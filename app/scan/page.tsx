@@ -116,11 +116,25 @@ export default function ScanPage() {
 
   // ---- SCAN HANDLER ----
   const handleScan = useCallback(
-    async (payload: string) => {
+    async (rawPayload: string) => {
       if (!user || !station) return;
       if (pausedRef.current) return;
 
       pausedRef.current = true;
+
+      // QR codes encode a full URL like https://des-rangila.vercel.app/pass/XXXX
+      // Extract the qrPayload (last path segment) if it's a URL
+      let payload = rawPayload;
+      try {
+        const passMatch = rawPayload.match(/\/pass\/([^/?#]+)/);
+        if (passMatch) {
+          payload = decodeURIComponent(passMatch[1]);
+        }
+      } catch {
+        // Not a URL — use raw value
+      }
+
+      console.log("[scan] raw:", rawPayload, "→ payload:", payload);
 
       setBorderFlash("green");
       setTimeout(() => setBorderFlash(null), 600);
@@ -140,7 +154,7 @@ export default function ScanPage() {
         if (!data) {
           try {
             const token = await user.getIdToken();
-            const res = await fetch(`/api/attendees/by-qr/${payload}`, {
+            const res = await fetch(`/api/attendees/by-qr/${encodeURIComponent(payload)}`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {

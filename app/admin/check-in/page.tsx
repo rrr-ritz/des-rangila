@@ -179,8 +179,8 @@ export default function CheckInPage() {
         name: selectedAttendee.name,
         phone: phone,
         email: selectedAttendee.email,
-        pin: selectedAttendee.pin,
-        qrPayload: selectedAttendee.qrPayload,
+        pin: data.pin || selectedAttendee.pin,
+        qrPayload: data.qrPayload || selectedAttendee.qrPayload,
         checkedIn: true,
       });
 

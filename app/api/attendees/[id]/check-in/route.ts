@@ -4,6 +4,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { verifyAuth, AuthError } from "@/lib/auth-helpers";
 import { logAction } from "@/lib/audit";
 import { sendPassSMS, isSmsConfigured } from "@/lib/sms/twilio";
+import { generatePin, generateQrPayload } from "@/lib/pin";
 
 export async function PATCH(
   request: NextRequest,
@@ -49,11 +50,36 @@ export async function PATCH(
     // No body or invalid JSON — that's fine, phone is optional
   }
 
+  // Generate PIN and QR payload if missing (pre-order attendees have empty strings)
+  let pin = data.pin;
+  let qrPayload = data.qrPayload;
+
+  if (!pin || !qrPayload) {
+    // Fetch all existing PINs and QR payloads to avoid collisions
+    const allAttendees = await adminDb.collection("attendees").get();
+    const existingPins = new Set<string>();
+    const existingQrs = new Set<string>();
+    allAttendees.docs.forEach((d) => {
+      const a = d.data();
+      if (a.pin) existingPins.add(a.pin);
+      if (a.qrPayload) existingQrs.add(a.qrPayload);
+    });
+
+    if (!pin) {
+      do { pin = generatePin(); } while (existingPins.has(pin));
+    }
+    if (!qrPayload) {
+      do { qrPayload = generateQrPayload(); } while (existingQrs.has(qrPayload));
+    }
+  }
+
   const now = Timestamp.now();
   const updateData: Record<string, unknown> = {
     checkedIn: true,
     checkedInAt: now,
     updatedAt: now,
+    pin,
+    qrPayload,
   };
 
   // Store phone if provided
@@ -81,9 +107,9 @@ export async function PATCH(
   let smsSent = false;
   let smsError = false;
   if (updateData.phone && isSmsConfigured()) {
-    const passUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://des-rangila.vercel.app"}/pass/${data.qrPayload}`;
+    const passUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://des-rangila.vercel.app"}/pass/${qrPayload}`;
     try {
-      const result = await sendPassSMS(updateData.phone as string, data.pin, passUrl);
+      const result = await sendPassSMS(updateData.phone as string, pin, passUrl);
       smsSent = result.success;
       smsError = !result.success;
       if (result.success) {
@@ -94,5 +120,5 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ success: true, checkedInAt: now, smsSent, smsError });
+  return NextResponse.json({ success: true, checkedInAt: now, pin, qrPayload, smsSent, smsError });
 }

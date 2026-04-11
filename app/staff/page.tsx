@@ -70,6 +70,26 @@ export default function StaffPage() {
     setVolLoading(true);
     try {
       await volConfirmation.confirm(volCode);
+
+      // Check if volunteer already registered (returning volunteer)
+      const auth = getFirebaseAuth();
+      if (auth?.currentUser) {
+        const token = await auth.currentUser.getIdToken();
+        const res = await fetch("/api/volunteers/register", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ name: "", phone: volPhone }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.existing) {
+            setVolStep("done");
+            setTimeout(() => router.push("/scan"), 1500);
+            return;
+          }
+        }
+      }
+
       setVolStep("profile");
     } catch {
       setVolError("Invalid verification code. Please try again.");

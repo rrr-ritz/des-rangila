@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { getAttendeeByQr, updateCachedAttendee } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
+import { SelfieCapture } from "@/components/face/SelfieCapture";
 
 interface StationInfo {
   id: string;
@@ -40,7 +41,7 @@ interface WalkInAttendee {
   checkedIn: boolean;
 }
 
-type WalkInStep = "form" | "creating" | "confirm";
+type WalkInStep = "form" | "creating" | "selfie" | "confirm";
 
 export default function ScanPage() {
   const { user, loading: authLoading } = useAuth();
@@ -323,8 +324,8 @@ export default function ScanPage() {
         setWalkInSmsStatus("pending");
       }
 
-      // Go straight to confirmation screen
-      setWalkInStep("confirm");
+      // Go to selfie capture before confirmation
+      setWalkInStep("selfie");
     } catch {
       setWalkInError("Network error. Please try again.");
       setWalkInStep("form");
@@ -462,7 +463,17 @@ export default function ScanPage() {
             </div>
           )}
 
-          {/* Step 3: Confirmation with QR Code */}
+          {/* Step 3: Selfie capture */}
+          {walkInStep === "selfie" && walkInAttendee && (
+            <SelfieCapture
+              attendeeId={walkInAttendee.id}
+              attendeeName={walkInAttendee.name}
+              onComplete={() => setWalkInStep("confirm")}
+              onSkip={() => setWalkInStep("confirm")}
+            />
+          )}
+
+          {/* Step 4: Confirmation with QR Code */}
           {walkInStep === "confirm" && walkInAttendee && (
             <div className="space-y-6 text-center rounded-xl p-5" style={{ backgroundColor: "#FDF8F0" }}>
               {walkInAlreadyExists && (

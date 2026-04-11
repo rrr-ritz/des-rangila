@@ -13,10 +13,11 @@ interface PhotoStripProps {
 
 const PHOTO_WIDTH = 600;
 const PHOTO_HEIGHT = 450;
-const PADDING = 20;
-const HEADER_HEIGHT = 80;
-const FOOTER_HEIGHT = 60;
+const PADDING = 30;
+const HEADER_HEIGHT = 70;
+const FOOTER_HEIGHT = 50;
 const GAP = 10;
+const FRAME = 10;
 
 export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,13 +27,16 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
     const canvas = canvasRef.current;
     if (!canvas || photos.length === 0) return;
 
-    const totalWidth = PHOTO_WIDTH + PADDING * 2;
-    const totalHeight =
+    const innerWidth = PHOTO_WIDTH + PADDING * 2;
+    const innerHeight =
       HEADER_HEIGHT +
       photos.length * PHOTO_HEIGHT +
       (photos.length - 1) * GAP +
       FOOTER_HEIGHT +
       PADDING * 2;
+
+    const totalWidth = innerWidth + FRAME * 2;
+    const totalHeight = innerHeight + FRAME * 2;
 
     canvas.width = totalWidth;
     canvas.height = totalHeight;
@@ -40,48 +44,57 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Background
-    ctx.fillStyle = "#1a1a2e";
+    // Mahogany frame
+    ctx.fillStyle = "#483932";
     ctx.fillRect(0, 0, totalWidth, totalHeight);
 
-    // Header
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 28px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Des Rangila 2026", totalWidth / 2, PADDING + 40);
-    ctx.font = "14px system-ui, sans-serif";
-    ctx.fillStyle = "#a0a0c0";
-    ctx.fillText("Tour of India", totalWidth / 2, PADDING + 62);
+    // Cream interior
+    ctx.fillStyle = "#FDF8F0";
+    ctx.fillRect(FRAME, FRAME, innerWidth, innerHeight);
 
-    // Load and draw each photo
+    // Header
+    ctx.fillStyle = "#483932";
+    ctx.font = "20px Georgia, 'Playfair Display', serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Des Rangila", totalWidth / 2, FRAME + PADDING + 32);
+    ctx.fillStyle = "#8C7B6B";
+    ctx.font = "11px Georgia, 'Playfair Display', serif";
+    ctx.fillText("Tour of India", totalWidth / 2, FRAME + PADDING + 50);
+
+    // Load and draw each photo in B&W
     let loaded = 0;
     photos.forEach((dataUrl, i) => {
       const img = new Image();
       img.onload = () => {
-        const y = HEADER_HEIGHT + PADDING + i * (PHOTO_HEIGHT + GAP);
-        // White border around each photo
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(PADDING - 3, y - 3, PHOTO_WIDTH + 6, PHOTO_HEIGHT + 6);
-        ctx.drawImage(img, PADDING, y, PHOTO_WIDTH, PHOTO_HEIGHT);
+        const y = FRAME + HEADER_HEIGHT + PADDING + i * (PHOTO_HEIGHT + GAP);
+        const x = FRAME + PADDING;
+
+        // Sand border around each photo
+        ctx.fillStyle = "#E8DFD0";
+        ctx.fillRect(x - 3, y - 3, PHOTO_WIDTH + 6, PHOTO_HEIGHT + 6);
+
+        // Draw photo in grayscale
+        ctx.filter = "grayscale(100%)";
+        ctx.drawImage(img, x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
+        ctx.filter = "none";
 
         loaded++;
         if (loaded === photos.length) {
           // Footer
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "12px system-ui, sans-serif";
+          ctx.fillStyle = "#8C7B6B";
+          ctx.font = "11px Georgia, 'Playfair Display', serif";
           ctx.textAlign = "center";
-          const footerY = totalHeight - PADDING - 20;
+          const footerY = totalHeight - FRAME - PADDING - 16;
           ctx.fillText(
-            "ISA \u2022 University of Maryland \u2022 2026",
+            "Tour of India \u00b7 April 11, 2026",
             totalWidth / 2,
             footerY
           );
-          ctx.fillStyle = "#a0a0c0";
-          ctx.font = "10px system-ui, sans-serif";
+          ctx.font = "10px Georgia, 'Playfair Display', serif";
           ctx.fillText(
-            "desrangila.app",
+            "ISA \u00b7 University of Maryland",
             totalWidth / 2,
-            footerY + 16
+            footerY + 15
           );
 
           setStripUrl(canvas.toDataURL("image/jpeg", 0.9));

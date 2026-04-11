@@ -162,7 +162,8 @@ export function SelfieCapture({
           </Button>
           <button
             onClick={onSkip}
-            className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            className="text-[10px] hover:opacity-80 transition-opacity"
+            style={{ color: "#B4A689" }}
           >
             Skip
           </button>

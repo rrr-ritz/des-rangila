@@ -2,13 +2,14 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { BoothCamera } from "@/components/booth/BoothCamera";
 import { PhotoStrip } from "@/components/booth/PhotoStrip";
 import { AttendeeScanner } from "@/components/booth/AttendeeScanner";
 import { Camera, RotateCcw } from "lucide-react";
 
-type BoothStep = "start" | "identify" | "count" | "capture" | "preview" | "done";
+type BoothStep = "start" | "identify" | "capture" | "preview" | "done";
+
+const PHOTO_COUNT = 3;
 
 interface IdentifiedAttendee {
   id: string;
@@ -19,30 +20,24 @@ interface IdentifiedAttendee {
 export default function BoothPage() {
   const [step, setStep] = useState<BoothStep>("start");
   const [attendees, setAttendees] = useState<IdentifiedAttendee[]>([]);
-  const [photoCount, setPhotoCount] = useState(1);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const resetBooth = useCallback(() => {
     setStep("start");
     setAttendees([]);
-    setPhotoCount(1);
     setCapturedPhotos([]);
     setSaving(false);
   }, []);
 
   const handleIdentify = (identified: IdentifiedAttendee[]) => {
     setAttendees(identified);
-    setStep("count");
+    setCapturedPhotos([]);
+    setStep("capture");
   };
 
   const handleSkip = () => {
     setAttendees([]);
-    setStep("count");
-  };
-
-  const handleSelectCount = (count: number) => {
-    setPhotoCount(count);
     setCapturedPhotos([]);
     setStep("capture");
   };
@@ -50,7 +45,7 @@ export default function BoothPage() {
   const handleCapture = (imageData: string) => {
     setCapturedPhotos((prev) => {
       const next = [...prev, imageData];
-      if (next.length >= photoCount) {
+      if (next.length >= PHOTO_COUNT) {
         setStep("preview");
       }
       return next;
@@ -139,41 +134,6 @@ export default function BoothPage() {
     );
   }
 
-  // PHOTO COUNT SELECTION
-  if (step === "count") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="space-y-6 text-center max-w-sm mx-auto">
-          <div>
-            <h2 className="font-display text-xl font-bold mb-2">How many photos?</h2>
-            <p className="text-sm text-muted-foreground">
-              Choose 1-4 photos for your strip
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((n) => (
-              <Card
-                key={n}
-                className="cursor-pointer hover:border-primary transition-colors"
-                onClick={() => handleSelectCount(n)}
-              >
-                <CardContent className="p-6 text-center">
-                  <p className="text-3xl font-bold">{n}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {n === 1 ? "Single" : n === 4 ? "Classic Strip" : `${n} Photos`}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Button variant="ghost" onClick={() => setStep("identify")}>
-            Back
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   // CAPTURE SCREEN
   if (step === "capture") {
     return (
@@ -181,7 +141,7 @@ export default function BoothPage() {
         <div className="max-w-xl mx-auto space-y-4">
           <div className="text-center">
             <h2 className="font-display text-lg font-bold">
-              Photo {capturedPhotos.length + 1} of {photoCount}
+              Photo {capturedPhotos.length + 1} of {PHOTO_COUNT}
             </h2>
             {attendees.length > 0 && (
               <p className="text-sm text-muted-foreground">
@@ -192,7 +152,7 @@ export default function BoothPage() {
 
           <BoothCamera
             onCapture={handleCapture}
-            photoCount={photoCount}
+            photoCount={PHOTO_COUNT}
             currentPhoto={capturedPhotos.length + 1}
           />
 

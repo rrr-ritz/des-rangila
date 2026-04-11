@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search")?.toLowerCase() || "";
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "500"), 500);
   const offset = parseInt(searchParams.get("offset") || "0");
 
   let query = adminDb.collection("attendees").orderBy("name").limit(limit);

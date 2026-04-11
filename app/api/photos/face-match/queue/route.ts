@@ -22,24 +22,45 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "pending";
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
 
-    let query: FirebaseFirestore.Query = adminDb
-      .collection("face_match_queue")
-      .orderBy("createdAt", "desc");
+    let matches;
+    try {
+      // Try ordered query (requires composite index for status + createdAt)
+      let query: FirebaseFirestore.Query = adminDb
+        .collection("face_match_queue")
+        .orderBy("createdAt", "desc");
 
-    // Support "all" to fetch all statuses (for admin overview)
-    if (status !== "all") {
-      query = query.where("status", "==", status);
+      if (status !== "all") {
+        query = query.where("status", "==", status);
+      }
+
+      if (limit > 0) {
+        query = query.limit(limit);
+      }
+
+      const snapshot = await query.get();
+      matches = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+    } catch {
+      // Fallback: query without orderBy if composite index is missing
+      let query: FirebaseFirestore.Query = adminDb
+        .collection("face_match_queue");
+
+      if (status !== "all") {
+        query = query.where("status", "==", status);
+      }
+
+      if (limit > 0) {
+        query = query.limit(limit);
+      }
+
+      const snapshot = await query.get();
+      matches = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
     }
-
-    if (limit > 0) {
-      query = query.limit(limit);
-    }
-
-    const snapshot = await query.get();
-    const matches = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
 
     return NextResponse.json({ matches, total: matches.length });
   } catch (error) {

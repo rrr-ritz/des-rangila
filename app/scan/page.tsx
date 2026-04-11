@@ -345,8 +345,8 @@ export default function ScanPage() {
   // ---- STATION PICKER ----
   if (showStationPicker && !station) {
     return (
-      <div className="min-h-screen p-4 max-w-sm mx-auto">
-        <h1 className="text-xl font-bold text-center mb-1">Select Station</h1>
+      <div className="min-h-screen p-4 max-w-sm mx-auto bg-[var(--color-background)]">
+        <h1 className="font-display text-xl font-medium text-center mb-1 text-[var(--color-primary)]">Select Station</h1>
         <p className="text-sm text-muted-foreground text-center mb-4">
           Choose the station you&apos;re volunteering at.
         </p>
@@ -379,17 +379,17 @@ export default function ScanPage() {
 
     return (
       <div className="min-h-screen flex flex-col max-w-sm mx-auto">
-        <header className="flex items-center gap-3 p-3 border-b">
+        <header className="flex items-center gap-3 p-3 border-b" style={{ backgroundColor: "#483932" }}>
           <button
             onClick={closeWalkIn}
-            className="p-2 rounded-md hover:bg-muted min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Back to scanner"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" style={{ color: "#F5E6C8" }} />
           </button>
           <div>
-            <p className="font-semibold text-sm">Walk-in Registration</p>
-            <p className="text-xs text-muted-foreground">Create a new passport</p>
+            <p className="font-display font-medium text-sm" style={{ color: "#F5E6C8" }}>Walk-in Registration</p>
+            <p className="text-xs" style={{ color: "#B4A689" }}>Create a new passport</p>
           </div>
         </header>
 
@@ -464,22 +464,22 @@ export default function ScanPage() {
 
           {/* Step 3: Confirmation with QR Code */}
           {walkInStep === "confirm" && walkInAttendee && (
-            <div className="space-y-6 text-center">
+            <div className="space-y-6 text-center rounded-xl p-5" style={{ backgroundColor: "#FDF8F0" }}>
               {walkInAlreadyExists && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200 text-sm px-4 py-2 rounded-md text-left">
+                <div className="text-sm px-4 py-2 rounded-md text-left" style={{ backgroundColor: "rgba(212,145,59,0.1)", color: "#705f3d" }}>
                   This person is already registered. Showing existing passport.
                 </div>
               )}
 
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Passport created for</p>
-                <p className="text-xl font-semibold" style={{ fontFamily: "'Playfair Display', serif" }}>
+                <p className="text-xs tracking-[2px] uppercase text-muted-foreground">Passport created for</p>
+                <p className="font-display text-xl font-medium" style={{ color: "#483932" }}>
                   {walkInAttendee.name}
                 </p>
               </div>
 
               {/* QR Code — white background for max scan reliability */}
-              <div className="inline-block p-4 bg-white rounded-xl shadow-md">
+              <div className="inline-block p-4 bg-white rounded-xl shadow-md border" style={{ borderColor: "#E8DFD0" }}>
                 <QRCodeSVG
                   value={passUrl}
                   size={250}
@@ -493,8 +493,8 @@ export default function ScanPage() {
               </p>
 
               {/* PIN */}
-              <div className="rounded-lg p-4" style={{ backgroundColor: "#FDF8F0" }}>
-                <p className="text-xs text-muted-foreground mb-1">Your PIN</p>
+              <div className="rounded-xl p-4 border" style={{ backgroundColor: "#FFFCF7", borderColor: "#E8DFD0" }}>
+                <p className="text-[10px] tracking-[2px] uppercase text-muted-foreground mb-2">Your PIN</p>
                 <p className="text-4xl font-mono font-bold tracking-[0.3em]" style={{ color: "#D4913B" }}>
                   {walkInAttendee.pin}
                 </p>
@@ -507,7 +507,7 @@ export default function ScanPage() {
                 </p>
               )}
               {walkInSmsStatus === "error" && (
-                <p className="text-xs text-amber-600">
+                <p className="text-xs" style={{ color: "#D4913B" }}>
                   SMS delivery pending — use the QR code above
                 </p>
               )}
@@ -518,7 +518,7 @@ export default function ScanPage() {
               )}
 
               <Button
-                className="w-full"
+                className="w-full text-white"
                 size="lg"
                 onClick={closeWalkIn}
                 style={{ backgroundColor: "#483932" }}
@@ -559,11 +559,11 @@ export default function ScanPage() {
       </div>
 
       {/* Header */}
-      <header className="flex items-center justify-between p-3 border-b">
+      <header className="flex items-center justify-between p-3 border-b" style={{ backgroundColor: "#483932" }}>
         <div>
-          <p className="font-semibold text-sm">{station?.name}</p>
+          <p className="font-display font-medium text-sm" style={{ color: "#F5E6C8" }}>{station?.name}</p>
           {station?.foodItem && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs" style={{ color: "#B4A689" }}>
               {station.foodItem}
             </p>
           )}
@@ -572,16 +572,16 @@ export default function ScanPage() {
           {/* Sound toggle */}
           <button
             onClick={toggleSound}
-            className="p-2 rounded-md hover:bg-muted min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title={soundEnabled ? "Sound on" : "Sound off"}
             aria-label={
               soundEnabled ? "Disable scan sound" : "Enable scan sound"
             }
           >
             {soundEnabled ? (
-              <Volume2 className="h-4 w-4" />
+              <Volume2 className="h-4 w-4" style={{ color: "#F5E6C8" }} />
             ) : (
-              <VolumeX className="h-4 w-4" />
+              <VolumeX className="h-4 w-4" style={{ color: "#8C7B6B" }} />
             )}
           </button>
           {/* Station picker */}
@@ -590,10 +590,10 @@ export default function ScanPage() {
               setStation(null);
               setShowStationPicker(true);
             }}
-            className="p-2 rounded-md hover:bg-muted min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Change station"
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4" style={{ color: "#F5E6C8" }} />
           </button>
         </div>
       </header>

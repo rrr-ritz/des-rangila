@@ -12,11 +12,16 @@ export async function PATCH(
   let authResult;
   try {
     authResult = await verifyAuth(request, "volunteer");
-  } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
+  } catch {
+    // Admins also use this endpoint from the check-in page
+    try {
+      authResult = await verifyAuth(request, "admin");
+    } catch (e2) {
+      if (e2 instanceof AuthError) {
+        return NextResponse.json({ error: e2.message }, { status: e2.status });
+      }
+      throw e2;
     }
-    throw e;
   }
 
   const ref = adminDb.collection("attendees").doc(params.id);

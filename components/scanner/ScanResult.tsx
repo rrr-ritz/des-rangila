@@ -203,8 +203,8 @@ export function ScanResult({
   return (
     <div className="bg-white dark:bg-card rounded-2xl p-5 space-y-4 shadow-2xl max-w-sm w-full">
       {/* Attendee info with selfie */}
-      <div className="text-center space-y-3">
-        <div className="mx-auto w-20 h-20 rounded-full overflow-hidden bg-gray-100 dark:bg-muted flex items-center justify-center">
+      <div className="text-center space-y-2">
+        <div className="mx-auto w-16 h-16 rounded-full overflow-hidden bg-gray-100 dark:bg-muted flex items-center justify-center flex-shrink-0">
           {attendee.selfieStorageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -213,10 +213,10 @@ export function ScanResult({
               className="w-full h-full object-cover"
             />
           ) : (
-            <User className="h-10 w-10 text-gray-400" />
+            <User className="h-8 w-8 text-gray-400" />
           )}
         </div>
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
           {attendee.name}
         </h3>
       </div>

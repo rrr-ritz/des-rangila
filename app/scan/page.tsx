@@ -29,21 +29,23 @@ interface AttendeeInfo {
 }
 
 // Hardcoded station list for offline fallback
+// Stations with food also have cultural activities ("both")
+// Activity-only stations have no food service
 const STATIONS: StationInfo[] = [
   { id: "registration", name: "Check-In", type: "registration", foodItem: null },
   { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
   { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
-  { id: "punjab", name: "Punjab", type: "food", foodItem: "Paneer Tikka" },
+  { id: "punjab", name: "Punjab", type: "both", foodItem: "Paneer Tikka" },
   { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
   { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
-  { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
-  { id: "central-india", name: "Central India", type: "food", foodItem: "Chai Latte Samples" },
+  { id: "maharashtra", name: "Maharashtra", type: "both", foodItem: "Vada Pav" },
+  { id: "central-india", name: "Central India", type: "both", foodItem: "Chai Latte Samples" },
   { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
   { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
-  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
-  { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "food", foodItem: "Biryani" },
-  { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
-  { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
+  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "both", foodItem: "Momos" },
+  { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "both", foodItem: "Biryani" },
+  { id: "karnataka", name: "Karnataka", type: "both", foodItem: "Idli" },
+  { id: "tamil-nadu", name: "Tamil Nadu", type: "both", foodItem: "Uthappam" },
   { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
   { id: "motion-cafe", name: "Motion Cafe", type: "food", foodItem: "Drinks" },
   { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
@@ -284,7 +286,7 @@ export default function ScanPage() {
       {/* Full-screen border flash */}
       <div
         className={cn(
-          "fixed inset-0 pointer-events-none z-50 transition-opacity duration-300",
+          "fixed inset-0 pointer-events-none z-30 transition-opacity duration-300",
           borderFlash ? "opacity-100" : "opacity-0"
         )}
       >
@@ -334,7 +336,7 @@ export default function ScanPage() {
 
           {/* Attendee result overlay */}
           {attendee && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
               <ScanResult
                 attendee={attendee}
                 stationId={station.id}

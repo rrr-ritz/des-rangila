@@ -167,14 +167,22 @@ export default function PhotosPage() {
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setSelectedPhoto(null)}
         >
-          <div className="max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-3xl leading-none z-10"
+            onClick={() => setSelectedPhoto(null)}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+          <div className="flex flex-col items-center" style={{ maxWidth: "90vw", maxHeight: "90vh" }} onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={selectedPhoto.storageUrl}
               alt="Event photo"
-              className="w-full rounded-lg"
+              className="rounded-lg object-contain"
+              style={{ maxWidth: "90vw", maxHeight: "80vh" }}
             />
-            <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center justify-between mt-3 w-full max-w-2xl">
               <Badge>{selectedPhoto.photoType}</Badge>
               <span className="text-sm text-white/70">
                 {selectedPhoto.attendeeIds.length} attendee

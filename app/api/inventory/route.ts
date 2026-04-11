@@ -5,11 +5,15 @@ import { verifyAuth, AuthError } from "@/lib/auth-helpers";
 export async function GET(request: NextRequest) {
   try {
     await verifyAuth(request, "volunteer");
-  } catch (e) {
-    if (e instanceof AuthError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
+  } catch {
+    try {
+      await verifyAuth(request, "admin");
+    } catch (e2) {
+      if (e2 instanceof AuthError) {
+        return NextResponse.json({ error: e2.message }, { status: e2.status });
+      }
+      throw e2;
     }
-    throw e;
   }
 
   const snapshot = await adminDb.collection("inventory").get();

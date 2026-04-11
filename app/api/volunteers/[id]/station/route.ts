@@ -24,7 +24,7 @@ export async function PATCH(
   const body = await request.json();
   const { stationId } = body;
 
-  if (!stationId) {
+  if (stationId === undefined) {
     return NextResponse.json(
       { error: "stationId is required" },
       { status: 400 }

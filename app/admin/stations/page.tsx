@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import type { Station } from "@/lib/types";
 
@@ -131,6 +131,33 @@ export default function StationsPage() {
     }
   };
 
+  const unassignVolunteer = async (volunteerId: string) => {
+    if (!user) return;
+    setReassigning(volunteerId);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/volunteers/${volunteerId}/station`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ stationId: null }),
+      });
+      if (res.ok) {
+        setVolunteers((prev) =>
+          prev.map((v) =>
+            v.id === volunteerId ? { ...v, currentStationId: null } : v
+          )
+        );
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setReassigning(null);
+    }
+  };
+
   function volunteersAtStation(stationId: string) {
     return volunteers.filter((v) => v.currentStationId === stationId);
   }
@@ -181,7 +208,21 @@ export default function StationsPage() {
           {assigned.length === 0 ? (
             <span className="text-amber-600 text-xs">None</span>
           ) : (
-            <span className="text-xs">{assigned.map((v) => v.name).join(", ")}</span>
+            <div className="flex flex-wrap gap-1">
+              {assigned.map((v) => (
+                <span key={v.id} className="inline-flex items-center gap-0.5 text-xs bg-muted px-1.5 py-0.5 rounded">
+                  {v.name}
+                  <button
+                    onClick={() => unassignVolunteer(v.id)}
+                    disabled={reassigning !== null}
+                    className="text-muted-foreground hover:text-destructive ml-0.5"
+                    title={`Unassign ${v.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
           )}
         </TableCell>
         <TableCell className="py-2">

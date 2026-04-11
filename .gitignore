@@ -23,6 +23,9 @@
 # Apple Wallet certificates (NEVER commit these)
 /certs/
 
+# Firebase service account key (NEVER commit)
+serviceAccountKey.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*

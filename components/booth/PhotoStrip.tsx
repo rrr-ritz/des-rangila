@@ -14,7 +14,7 @@ interface PhotoStripProps {
 const PHOTO_WIDTH = 600;
 const PHOTO_HEIGHT = 450;
 const BORDER = 24;
-const PHOTO_GAP = 8;
+const PHOTO_GAP = 22;
 const BRANDING_HEIGHT = 200;
 
 export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps) {

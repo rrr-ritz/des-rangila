@@ -13,11 +13,9 @@ interface PhotoStripProps {
 
 const PHOTO_WIDTH = 600;
 const PHOTO_HEIGHT = 450;
-const PADDING = 30;
-const HEADER_HEIGHT = 70;
-const FOOTER_HEIGHT = 50;
-const GAP = 10;
-const FRAME = 10;
+const BORDER = 24;
+const PHOTO_GAP = 8;
+const BRANDING_HEIGHT = 200;
 
 export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,16 +25,10 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
     const canvas = canvasRef.current;
     if (!canvas || photos.length === 0) return;
 
-    const innerWidth = PHOTO_WIDTH + PADDING * 2;
-    const innerHeight =
-      HEADER_HEIGHT +
-      photos.length * PHOTO_HEIGHT +
-      (photos.length - 1) * GAP +
-      FOOTER_HEIGHT +
-      PADDING * 2;
-
-    const totalWidth = innerWidth + FRAME * 2;
-    const totalHeight = innerHeight + FRAME * 2;
+    const totalWidth = PHOTO_WIDTH + BORDER * 2;
+    const photosHeight =
+      photos.length * PHOTO_HEIGHT + (photos.length - 1) * PHOTO_GAP;
+    const totalHeight = BORDER + photosHeight + BRANDING_HEIGHT + BORDER;
 
     canvas.width = totalWidth;
     canvas.height = totalHeight;
@@ -44,58 +36,59 @@ export function PhotoStrip({ photos, onSave, onRetake, saving }: PhotoStripProps
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Mahogany frame
-    ctx.fillStyle = "#483932";
+    // Full dark background
+    ctx.fillStyle = "#0a0a0a";
     ctx.fillRect(0, 0, totalWidth, totalHeight);
-
-    // Cream interior
-    ctx.fillStyle = "#FDF8F0";
-    ctx.fillRect(FRAME, FRAME, innerWidth, innerHeight);
-
-    // Header
-    ctx.fillStyle = "#483932";
-    ctx.font = "20px Georgia, 'Playfair Display', serif";
-    ctx.textAlign = "center";
-    ctx.fillText("Des Rangila", totalWidth / 2, FRAME + PADDING + 32);
-    ctx.fillStyle = "#8C7B6B";
-    ctx.font = "11px Georgia, 'Playfair Display', serif";
-    ctx.fillText("Tour of India", totalWidth / 2, FRAME + PADDING + 50);
 
     // Load and draw each photo in B&W
     let loaded = 0;
     photos.forEach((dataUrl, i) => {
       const img = new Image();
       img.onload = () => {
-        const y = FRAME + HEADER_HEIGHT + PADDING + i * (PHOTO_HEIGHT + GAP);
-        const x = FRAME + PADDING;
+        const x = BORDER;
+        const y = BORDER + i * (PHOTO_HEIGHT + PHOTO_GAP);
 
-        // Sand border around each photo
-        ctx.fillStyle = "#E8DFD0";
-        ctx.fillRect(x - 3, y - 3, PHOTO_WIDTH + 6, PHOTO_HEIGHT + 6);
-
-        // Draw photo in grayscale
+        // Draw photo in grayscale — edge-to-edge, no individual borders
         ctx.filter = "grayscale(100%)";
         ctx.drawImage(img, x, y, PHOTO_WIDTH, PHOTO_HEIGHT);
         ctx.filter = "none";
 
         loaded++;
         if (loaded === photos.length) {
-          // Footer
-          ctx.fillStyle = "#8C7B6B";
-          ctx.font = "11px Georgia, 'Playfair Display', serif";
+          // Branding section — centered below photos
+          const brandingTop = BORDER + photosHeight;
+          const brandingCenter = brandingTop + BRANDING_HEIGHT / 2;
+
+          // "Des Rangila" — large bold serif
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 36px Georgia, 'Playfair Display', serif";
           ctx.textAlign = "center";
-          const footerY = totalHeight - FRAME - PADDING - 16;
+          ctx.fillText("Des Rangila", totalWidth / 2, brandingCenter - 24);
+
+          // Thin horizontal line
+          const lineWidth = totalWidth * 0.3;
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo((totalWidth - lineWidth) / 2, brandingCenter - 6);
+          ctx.lineTo((totalWidth + lineWidth) / 2, brandingCenter - 6);
+          ctx.stroke();
+
+          // Date
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "16px Georgia, 'Playfair Display', serif";
+          ctx.fillText("04.11.26", totalWidth / 2, brandingCenter + 18);
+
+          // "UMD INDIAN STUDENT ASSOCIATION"
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "10px system-ui, sans-serif";
+          ctx.letterSpacing = "3px";
           ctx.fillText(
-            "Tour of India \u00b7 April 11, 2026",
+            "UMD INDIAN STUDENT ASSOCIATION",
             totalWidth / 2,
-            footerY
+            brandingCenter + 48
           );
-          ctx.font = "10px Georgia, 'Playfair Display', serif";
-          ctx.fillText(
-            "ISA \u00b7 University of Maryland",
-            totalWidth / 2,
-            footerY + 15
-          );
+          ctx.letterSpacing = "0px";
 
           setStripUrl(canvas.toDataURL("image/jpeg", 0.9));
         }

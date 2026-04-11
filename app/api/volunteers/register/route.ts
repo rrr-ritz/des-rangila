@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
-  // Check if volunteer already exists
+  // Check if volunteer already exists by UID
   const existingSnapshot = await adminDb
     .collection("volunteers")
     .where("uid", "==", uid)
@@ -34,6 +34,29 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
+
+  // Check if volunteer was pre-registered by phone (no UID yet)
+  if (body.phone) {
+    const digits = String(body.phone).replace(/\D/g, "");
+    const e164 = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : body.phone;
+    const phoneSnapshot = await adminDb
+      .collection("volunteers")
+      .where("phone", "==", e164)
+      .limit(1)
+      .get();
+
+    if (!phoneSnapshot.empty) {
+      const doc = phoneSnapshot.docs[0];
+      // Link the pre-registered volunteer to this Firebase Auth UID
+      await doc.ref.update({ uid });
+      const data = doc.data();
+      return NextResponse.json({
+        success: true,
+        volunteer: { id: doc.id, ...data, uid },
+        existing: true,
+      });
+    }
+  }
   const { name, phone, stationId } = body;
 
   if (!name || !phone) {

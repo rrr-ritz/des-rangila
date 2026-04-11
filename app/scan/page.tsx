@@ -6,14 +6,10 @@ import { QRScanner } from "@/components/scanner/QRScanner";
 import { ScanResult } from "@/components/scanner/ScanResult";
 import { OfflineBanner } from "@/components/scanner/OfflineBanner";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Settings, Volume2, VolumeX, XCircle, UserPlus, Loader2, ArrowLeft } from "lucide-react";
+import { Volume2, VolumeX, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAttendeeByQr, updateCachedAttendee } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
-import { QRCodeSVG } from "qrcode.react";
-import { SelfieCapture } from "@/components/face/SelfieCapture";
 
 interface StationInfo {
   id: string;
@@ -31,58 +27,51 @@ interface AttendeeInfo {
   maxFoodRedemptions: number;
 }
 
-interface WalkInAttendee {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  pin: string;
-  qrPayload: string;
-  checkedIn: boolean;
-}
-
-type WalkInStep = "form" | "creating" | "selfie" | "confirm";
+// Hardcoded station list for offline fallback
+const STATIONS: StationInfo[] = [
+  { id: "registration", name: "Check-In", type: "registration", foodItem: null },
+  { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
+  { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
+  { id: "punjab", name: "Punjab", type: "food", foodItem: "Paneer Tikka" },
+  { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
+  { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
+  { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
+  { id: "central-india", name: "Central India", type: "food", foodItem: "Chai Latte Samples" },
+  { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
+  { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
+  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
+  { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "food", foodItem: "Biryani" },
+  { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
+  { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
+  { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
+  { id: "motion-cafe", name: "Motion Cafe", type: "food", foodItem: "Drinks" },
+  { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
+];
 
 export default function ScanPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [station, setStation] = useState<StationInfo | null>(null);
-  const [stations, setStations] = useState<StationInfo[]>([]);
+  const [volunteerName, setVolunteerName] = useState<string>("");
   const [attendee, setAttendee] = useState<AttendeeInfo | null>(null);
-  const [showStationPicker, setShowStationPicker] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Border flash for outdoor visual feedback
-  const [borderFlash, setBorderFlash] = useState<"green" | "red" | null>(
-    null
-  );
-  // "Not found" overlay (auto-dismisses after 2s)
+  const [borderFlash, setBorderFlash] = useState<"green" | "red" | null>(null);
   const [notFound, setNotFound] = useState(false);
-  // Sound toggle (persisted in localStorage)
   const [soundEnabled, setSoundEnabled] = useState(false);
 
-  // ---- Walk-in Registration State ----
-  const [showWalkIn, setShowWalkIn] = useState(false);
-  const [walkInStep, setWalkInStep] = useState<WalkInStep>("form");
-  const [walkInName, setWalkInName] = useState("");
-  const [walkInEmail, setWalkInEmail] = useState("");
-  const [walkInPhone, setWalkInPhone] = useState("");
-  const [walkInError, setWalkInError] = useState("");
-  const [walkInAttendee, setWalkInAttendee] = useState<WalkInAttendee | null>(null);
-  const [walkInSmsStatus, setWalkInSmsStatus] = useState<"pending" | "sent" | "error" | null>(null);
-  const [walkInAlreadyExists, setWalkInAlreadyExists] = useState(false);
-
-  // Use a ref for pause state so the QRScanner callback doesn't need
-  // to recreate — the scanner stays alive and checks this ref.
   const pausedRef = useRef(false);
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push("/volunteer/register");
+      router.push("/staff");
     }
   }, [user, authLoading, router]);
 
-  // Load sound preference from localStorage
+  // Load sound preference
   useEffect(() => {
     try {
       const saved = localStorage.getItem("des-rangila-scan-sound");
@@ -92,47 +81,34 @@ export default function ScanPage() {
     }
   }, []);
 
-  // Load stations
+  // Load volunteer profile and assigned station
   useEffect(() => {
     if (!user) return;
-    async function loadStations() {
+    async function loadProfile() {
       try {
         const token = await user!.getIdToken();
-        const res = await fetch("/api/inventory", {
+        const res = await fetch("/api/volunteers/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
-          // If we can't load stations from API, use defaults
+          const data = await res.json();
+          setVolunteerName(data.name || "");
+          if (data.currentStationId) {
+            const matched = STATIONS.find((s) => s.id === data.currentStationId);
+            if (matched) {
+              setStation(matched);
+            }
+          }
+        } else {
+          setProfileError("Could not load your profile. Please contact an admin.");
         }
       } catch {
-        // Offline or no stations configured yet
+        setProfileError("Network error loading profile.");
+      } finally {
+        setProfileLoading(false);
       }
-
-      // Default stations for initial setup
-      setStations([
-        { id: "registration", name: "Check-In", type: "registration", foodItem: null },
-        { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
-        { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
-        { id: "punjab", name: "Punjab", type: "food", foodItem: "Paneer Tikka" },
-        { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
-        { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
-        { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
-        { id: "central-india", name: "Central India", type: "food", foodItem: "Chai Latte Samples" },
-        { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
-        { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
-        { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
-        { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "food", foodItem: "Biryani" },
-        { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
-        { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
-        { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
-        { id: "motion-cafe", name: "Motion Cafe", type: "food", foodItem: "Drinks" },
-        { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
-      ]);
-
-      // Show station picker if no station selected
-      setShowStationPicker(true);
     }
-    loadStations();
+    loadProfile();
   }, [user]);
 
   // ---- SCAN HANDLER ----
@@ -155,7 +131,7 @@ export default function ScanPage() {
             data = cached as AttendeeInfo;
           }
         } catch {
-          // IndexedDB not available or empty
+          // IndexedDB not available
         }
 
         if (!data) {
@@ -233,7 +209,6 @@ export default function ScanPage() {
     }
   }
 
-  // ---- DISMISS HANDLER ----
   function handleDismiss() {
     setAttendee(null);
     pausedRef.current = false;
@@ -249,91 +224,8 @@ export default function ScanPage() {
     }
   }
 
-  // ---- WALK-IN REGISTRATION HANDLERS ----
-  function openWalkIn() {
-    setShowWalkIn(true);
-    setWalkInStep("form");
-    setWalkInName("");
-    setWalkInEmail("");
-    setWalkInPhone("");
-    setWalkInError("");
-    setWalkInAttendee(null);
-    setWalkInSmsStatus(null);
-    setWalkInAlreadyExists(false);
-    pausedRef.current = true;
-  }
-
-  function closeWalkIn() {
-    setShowWalkIn(false);
-    setWalkInStep("form");
-    setWalkInName("");
-    setWalkInEmail("");
-    setWalkInPhone("");
-    setWalkInError("");
-    setWalkInAttendee(null);
-    setWalkInSmsStatus(null);
-    pausedRef.current = false;
-  }
-
-  async function handleWalkInSubmit() {
-    if (!user) return;
-    if (!walkInName.trim()) {
-      setWalkInError("Name is required");
-      return;
-    }
-
-    setWalkInError("");
-    setWalkInStep("creating");
-
-    const phoneProvided = walkInPhone.replace(/\D/g, "").length >= 10;
-
-    try {
-      const token = await user.getIdToken();
-      const res = await fetch("/api/attendees/walk-in", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: walkInName.trim(),
-          phone: phoneProvided ? walkInPhone.trim() : undefined,
-          email: walkInEmail.trim() || undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setWalkInError(data.error || "Registration failed");
-        setWalkInStep("form");
-        return;
-      }
-
-      setWalkInAttendee(data.attendee);
-      setWalkInAlreadyExists(data.alreadyExists || false);
-
-      // SMS status
-      if (!phoneProvided) {
-        setWalkInSmsStatus(null);
-      } else if (data.smsSent) {
-        setWalkInSmsStatus("sent");
-      } else if (data.smsError) {
-        setWalkInSmsStatus("error");
-      } else {
-        setWalkInSmsStatus("pending");
-      }
-
-      // Go to selfie capture before confirmation
-      setWalkInStep("selfie");
-    } catch {
-      setWalkInError("Network error. Please try again.");
-      setWalkInStep("form");
-    }
-  }
-
   // ---- LOADING / AUTH STATES ----
-  if (authLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -343,227 +235,37 @@ export default function ScanPage() {
 
   if (!user) return null;
 
-  // ---- STATION PICKER ----
-  if (showStationPicker && !station) {
+  // No station assigned
+  if (!station) {
     return (
-      <div className="min-h-screen p-4 max-w-sm mx-auto bg-[var(--color-background)]">
-        <h1 className="font-display text-xl font-medium text-center mb-1 text-[var(--color-primary)]">Select Station</h1>
-        <p className="text-sm text-muted-foreground text-center mb-4">
-          Choose the station you&apos;re volunteering at.
-        </p>
-        <div className="space-y-2">
-          {stations.map((s) => (
-            <button
-              key={s.id}
-              className="w-full text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
-              onClick={() => {
-                setStation(s);
-                setShowStationPicker(false);
-              }}
-            >
-              <p className="font-medium text-sm">{s.name}</p>
-              {s.foodItem && (
-                <p className="text-xs text-muted-foreground">{s.foodItem}</p>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ---- WALK-IN REGISTRATION UI ----
-  if (showWalkIn) {
-    const passUrl = walkInAttendee
-      ? `https://des-rangila.vercel.app/pass/${walkInAttendee.qrPayload}`
-      : "";
-
-    return (
-      <div className="min-h-screen flex flex-col max-w-sm mx-auto">
-        <header className="flex items-center gap-3 p-3 border-b" style={{ backgroundColor: "#483932" }}>
-          <button
-            onClick={closeWalkIn}
-            className="p-2 rounded-md hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Back to scanner"
-          >
-            <ArrowLeft className="h-4 w-4" style={{ color: "#F5E6C8" }} />
-          </button>
-          <div>
-            <p className="font-display font-medium text-sm" style={{ color: "#F5E6C8" }}>Walk-in Registration</p>
-            <p className="text-xs" style={{ color: "#B4A689" }}>Create a new passport</p>
-          </div>
-        </header>
-
-        <div className="flex-1 p-4">
-          {/* Step 1: Name + Phone + Email Form */}
-          {walkInStep === "form" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="walkin-name" className="text-sm font-medium">
-                  Name
-                </label>
-                <Input
-                  id="walkin-name"
-                  placeholder="Full name"
-                  value={walkInName}
-                  onChange={(e) => setWalkInName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="walkin-phone" className="text-sm font-medium">
-                  Phone Number <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <Input
-                  id="walkin-phone"
-                  type="tel"
-                  placeholder="(301) 555-1234"
-                  value={walkInPhone}
-                  onChange={(e) => setWalkInPhone(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="walkin-email" className="text-sm font-medium">
-                  Email <span className="text-muted-foreground font-normal">(optional)</span>
-                </label>
-                <Input
-                  id="walkin-email"
-                  type="email"
-                  placeholder="email@example.com"
-                  value={walkInEmail}
-                  onChange={(e) => setWalkInEmail(e.target.value)}
-                />
-              </div>
-
-              {walkInError && (
-                <p className="text-sm text-destructive">{walkInError}</p>
-              )}
-
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handleWalkInSubmit}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Create Passport
-              </Button>
-            </div>
-          )}
-
-          {/* Step 2: Creating... */}
-          {walkInStep === "creating" && (
-            <div className="text-center py-12 space-y-4">
-              <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
-              <div>
-                <h3 className="font-semibold">Creating passport...</h3>
-                <p className="text-sm text-muted-foreground">
-                  Generating PIN and QR code
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Selfie capture */}
-          {walkInStep === "selfie" && walkInAttendee && (
-            <SelfieCapture
-              attendeeId={walkInAttendee.id}
-              attendeeName={walkInAttendee.name}
-              onComplete={() => setWalkInStep("confirm")}
-              onSkip={() => setWalkInStep("confirm")}
-            />
-          )}
-
-          {/* Step 4: Confirmation with QR Code */}
-          {walkInStep === "confirm" && walkInAttendee && (
-            <div className="space-y-6 text-center rounded-xl p-5" style={{ backgroundColor: "#FDF8F0" }}>
-              {walkInAlreadyExists && (
-                <div className="text-sm px-4 py-2 rounded-md text-left" style={{ backgroundColor: "rgba(212,145,59,0.1)", color: "#705f3d" }}>
-                  This person is already registered. Showing existing passport.
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <p className="text-xs tracking-[2px] uppercase text-muted-foreground">Passport created for</p>
-                <p className="font-display text-xl font-medium" style={{ color: "#483932" }}>
-                  {walkInAttendee.name}
-                </p>
-              </div>
-
-              {/* QR Code — white background for max scan reliability */}
-              <div className="inline-block p-4 bg-white rounded-xl shadow-md border" style={{ borderColor: "#E8DFD0" }}>
-                <QRCodeSVG
-                  value={passUrl}
-                  size={250}
-                  level="M"
-                  includeMargin={false}
-                />
-              </div>
-
-              <p className="text-sm font-medium" style={{ color: "#483932" }}>
-                Scan this QR code to open your digital passport
-              </p>
-
-              {/* PIN */}
-              <div className="rounded-xl p-4 border" style={{ backgroundColor: "#FFFCF7", borderColor: "#E8DFD0" }}>
-                <p className="text-[10px] tracking-[2px] uppercase text-muted-foreground mb-2">Your PIN</p>
-                <p className="text-4xl font-mono font-bold tracking-[0.3em]" style={{ color: "#D4913B" }}>
-                  {walkInAttendee.pin}
-                </p>
-              </div>
-
-              {/* SMS status */}
-              {walkInSmsStatus === "sent" && (
-                <p className="text-xs text-green-600">
-                  Passport link also texted to {walkInAttendee.phone}
-                </p>
-              )}
-              {walkInSmsStatus === "error" && (
-                <p className="text-xs" style={{ color: "#D4913B" }}>
-                  SMS delivery pending — use the QR code above
-                </p>
-              )}
-              {walkInSmsStatus === "pending" && (
-                <p className="text-xs text-muted-foreground">
-                  Sending text message...
-                </p>
-              )}
-
-              <Button
-                className="w-full text-white"
-                size="lg"
-                onClick={closeWalkIn}
-                style={{ backgroundColor: "#483932" }}
-              >
-                Next Attendee
-              </Button>
-            </div>
-          )}
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-3 max-w-sm">
+          <h2 className="font-display text-lg font-medium text-[var(--color-primary)]">
+            No Station Assigned
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {profileError || "You haven't been assigned to a station yet. Please contact an admin."}
+          </p>
         </div>
       </div>
     );
   }
 
   // ---- MAIN SCAN UI ----
-  const isCheckIn = station?.type === "registration";
-
   return (
     <div className="min-h-screen flex flex-col max-w-sm mx-auto">
-      {/* Full-screen border flash — visible in direct sunlight */}
+      {/* Full-screen border flash */}
       <div
         className={cn(
           "fixed inset-0 pointer-events-none z-50 transition-opacity duration-300",
-          borderFlash
-            ? "opacity-100"
-            : "opacity-0"
+          borderFlash ? "opacity-100" : "opacity-0"
         )}
       >
         <div
           className={cn(
             "absolute inset-0 border-[6px]",
-            borderFlash === "green" &&
-              "border-green-500 shadow-[inset_0_0_40px_rgba(34,197,94,0.3)]",
-            borderFlash === "red" &&
-              "border-red-500 shadow-[inset_0_0_40px_rgba(239,68,68,0.3)]",
+            borderFlash === "green" && "border-green-500 shadow-[inset_0_0_40px_rgba(34,197,94,0.3)]",
+            borderFlash === "red" && "border-red-500 shadow-[inset_0_0_40px_rgba(239,68,68,0.3)]",
             !borderFlash && "border-transparent"
           )}
         />
@@ -572,22 +274,17 @@ export default function ScanPage() {
       {/* Header */}
       <header className="flex items-center justify-between p-3 border-b" style={{ backgroundColor: "#483932" }}>
         <div>
-          <p className="font-display font-medium text-sm" style={{ color: "#F5E6C8" }}>{station?.name}</p>
-          {station?.foodItem && (
-            <p className="text-xs" style={{ color: "#B4A689" }}>
-              {station.foodItem}
-            </p>
-          )}
+          <p className="font-display font-medium text-sm" style={{ color: "#F5E6C8" }}>{station.name}</p>
+          <p className="text-xs" style={{ color: "#B4A689" }}>
+            {volunteerName}{station.foodItem ? ` · ${station.foodItem}` : ""}
+          </p>
         </div>
         <div className="flex items-center gap-1">
-          {/* Sound toggle */}
           <button
             onClick={toggleSound}
             className="p-2 rounded-md hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title={soundEnabled ? "Sound on" : "Sound off"}
-            aria-label={
-              soundEnabled ? "Disable scan sound" : "Enable scan sound"
-            }
+            aria-label={soundEnabled ? "Disable scan sound" : "Enable scan sound"}
           >
             {soundEnabled ? (
               <Volume2 className="h-4 w-4" style={{ color: "#F5E6C8" }} />
@@ -595,54 +292,27 @@ export default function ScanPage() {
               <VolumeX className="h-4 w-4" style={{ color: "#8C7B6B" }} />
             )}
           </button>
-          {/* Station picker */}
-          <button
-            onClick={() => {
-              setStation(null);
-              setShowStationPicker(true);
-            }}
-            className="p-2 rounded-md hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="Change station"
-          >
-            <Settings className="h-4 w-4" style={{ color: "#F5E6C8" }} />
-          </button>
         </div>
       </header>
 
       <OfflineBanner />
 
-      {/* Walk-in Registration button — only shown at Check-In station */}
-      {isCheckIn && (
-        <div className="px-4 pt-3">
-          <Button
-            variant="outline"
-            className="w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            size="lg"
-            onClick={openWalkIn}
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Walk-in Registration
-          </Button>
-        </div>
-      )}
-
       {/* Scanner + overlays */}
       <div className="flex-1 p-4">
         <div className="relative">
-          {/* QR Scanner — ALWAYS running, never unmounted while on this screen */}
           <QRScanner
             onScan={handleScan}
             paused={!!attendee || notFound}
           />
 
-          {/* Attendee result overlay — floats on top of the running scanner */}
+          {/* Attendee result overlay */}
           {attendee && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg p-4">
               <ScanResult
                 attendee={attendee}
-                stationId={station!.id}
-                stationType={station!.type}
-                foodItem={station!.foodItem}
+                stationId={station.id}
+                stationType={station.type}
+                foodItem={station.foodItem}
                 onRedeem={handleRedeem}
                 onDismiss={handleDismiss}
                 soundEnabled={soundEnabled}
@@ -650,15 +320,13 @@ export default function ScanPage() {
             </div>
           )}
 
-          {/* "Not found" error overlay — auto-dismisses after 2 seconds */}
+          {/* Not found overlay */}
           {notFound && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-red-600/90 backdrop-blur-sm rounded-lg p-4">
               <div className="text-center text-white space-y-3">
                 <XCircle className="h-20 w-20 mx-auto" strokeWidth={2.5} />
                 <p className="text-xl font-bold">Not Found</p>
-                <p className="text-sm opacity-80">
-                  QR code not recognized
-                </p>
+                <p className="text-sm opacity-80">QR code not recognized</p>
               </div>
             </div>
           )}

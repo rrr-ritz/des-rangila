@@ -12,6 +12,7 @@ import {
   MapPin,
   Package,
   UserCheck,
+  UserPlus,
   Camera,
   FileText,
   ScanFace,
@@ -24,6 +25,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/check-in", label: "Check-in", icon: UserPlus },
   { href: "/admin/attendees", label: "Attendees", icon: Users },
   { href: "/admin/stations", label: "Stations", icon: MapPin },
   { href: "/admin/inventory", label: "Inventory", icon: Package },
@@ -44,15 +46,10 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user && pathname !== "/admin/login") {
-      router.push("/admin/login");
+    if (!loading && !user) {
+      router.push("/staff");
     }
-  }, [user, loading, router, pathname]);
-
-  // Don't wrap the login page in the admin layout
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
-  }
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -68,7 +65,7 @@ export default function AdminLayout({
 
   async function handleSignOut() {
     await signOut();
-    router.push("/admin/login");
+    router.push("/staff");
   }
 
   return (

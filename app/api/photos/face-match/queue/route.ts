@@ -22,45 +22,26 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status") || "pending";
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
 
-    let matches;
-    try {
-      // Try ordered query (requires composite index for status + createdAt)
-      let query: FirebaseFirestore.Query = adminDb
-        .collection("face_match_queue")
-        .orderBy("createdAt", "desc");
+    // Simple query — no orderBy to avoid composite index requirement.
+    // Sort client-side instead (collection is small).
+    let query: FirebaseFirestore.Query = adminDb.collection("face_match_queue");
 
-      if (status !== "all") {
-        query = query.where("status", "==", status);
-      }
-
-      if (limit > 0) {
-        query = query.limit(limit);
-      }
-
-      const snapshot = await query.get();
-      matches = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    } catch {
-      // Fallback: query without orderBy if composite index is missing
-      let query: FirebaseFirestore.Query = adminDb
-        .collection("face_match_queue");
-
-      if (status !== "all") {
-        query = query.where("status", "==", status);
-      }
-
-      if (limit > 0) {
-        query = query.limit(limit);
-      }
-
-      const snapshot = await query.get();
-      matches = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    if (status !== "all") {
+      query = query.where("status", "==", status);
     }
+
+    if (limit > 0) {
+      query = query.limit(limit);
+    }
+
+    const snapshot = await query.get();
+    const matches = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const aTime = (a as Record<string, unknown>).createdAt as { _seconds?: number; seconds?: number } | undefined;
+        const bTime = (b as Record<string, unknown>).createdAt as { _seconds?: number; seconds?: number } | undefined;
+        return (bTime?._seconds || bTime?.seconds || 0) - (aTime?._seconds || aTime?.seconds || 0);
+      });
 
     return NextResponse.json({ matches, total: matches.length });
   } catch (error) {

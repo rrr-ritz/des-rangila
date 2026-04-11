@@ -2,6 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Build dependencies for InsightFace Cython extension
+RUN apt-get update && apt-get install -y --no-install-recommends g++ && rm -rf /var/lib/apt/lists/*
+
 # Install Python dependencies
 COPY requirements-daemon.txt .
 RUN pip install --no-cache-dir -r requirements-daemon.txt

@@ -9,6 +9,7 @@ interface BoothCameraProps {
   photoCount: number;
   currentPhoto: number;
   disabled?: boolean;
+  autoStart?: boolean;
 }
 
 export function BoothCamera({
@@ -16,6 +17,7 @@ export function BoothCamera({
   photoCount,
   currentPhoto,
   disabled,
+  autoStart,
 }: BoothCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -24,6 +26,8 @@ export function BoothCamera({
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
+  const countdownActiveRef = useRef(false);
+  const lastAutoPhotoRef = useRef(0);
 
   const startCamera = useCallback(async () => {
     try {
@@ -85,6 +89,8 @@ export function BoothCamera({
   }, [onCapture]);
 
   const startCountdown = useCallback(() => {
+    if (countdownActiveRef.current) return;
+    countdownActiveRef.current = true;
     setCountdown(3);
     let count = 3;
     const interval = setInterval(() => {
@@ -94,12 +100,26 @@ export function BoothCamera({
       } else {
         clearInterval(interval);
         setCountdown(null);
+        countdownActiveRef.current = false;
         setFlash(true);
-        setTimeout(() => setFlash(false), 200);
+        setTimeout(() => setFlash(false), 350);
         capturePhoto();
       }
     }, 1000);
   }, [capturePhoto]);
+
+  // Auto-fire: start countdown when camera is ready and currentPhoto changes
+  useEffect(() => {
+    if (!autoStart || !cameraReady) return;
+    if (lastAutoPhotoRef.current === currentPhoto) return;
+    lastAutoPhotoRef.current = currentPhoto;
+
+    // First photo: short delay so user can see themselves
+    // Subsequent photos: 1-second pause to adjust pose
+    const delay = currentPhoto === 1 ? 800 : 1000;
+    const timer = setTimeout(() => startCountdown(), delay);
+    return () => clearTimeout(timer);
+  }, [autoStart, cameraReady, currentPhoto, startCountdown]);
 
   if (cameraError) {
     return (
@@ -126,21 +146,21 @@ export function BoothCamera({
           playsInline
           muted
           className="w-full h-full object-cover"
-          style={{ transform: "scaleX(-1)" }}
+          style={{ transform: "scaleX(-1)", filter: "brightness(1.2)" }}
         />
 
         {/* Countdown overlay */}
         {countdown !== null && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <span className="text-8xl font-bold text-white animate-pulse">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+            <span className="text-9xl font-bold text-white drop-shadow-lg" style={{ textShadow: "0 0 40px rgba(255,255,255,0.5)" }}>
               {countdown}
             </span>
           </div>
         )}
 
-        {/* Flash effect */}
+        {/* Flash effect — intense, longer duration */}
         {flash && (
-          <div className="absolute inset-0 bg-white animate-pulse" />
+          <div className="absolute inset-0 bg-white" style={{ opacity: 0.95 }} />
         )}
 
         {/* Photo counter */}
@@ -152,17 +172,19 @@ export function BoothCamera({
       {/* Hidden canvas for capture */}
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Capture button */}
-      <div className="flex justify-center mt-6">
-        <button
-          onClick={startCountdown}
-          disabled={!cameraReady || disabled || countdown !== null}
-          className="h-16 w-16 rounded-full bg-white border-4 border-primary shadow-lg hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          aria-label="Take photo"
-        >
-          <div className="h-12 w-12 rounded-full bg-primary" />
-        </button>
-      </div>
+      {/* Show manual capture button only if not auto-firing */}
+      {!autoStart && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={startCountdown}
+            disabled={!cameraReady || disabled || countdown !== null}
+            className="h-16 w-16 rounded-full bg-white border-4 border-primary shadow-lg hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            aria-label="Take photo"
+          >
+            <div className="h-12 w-12 rounded-full bg-primary" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

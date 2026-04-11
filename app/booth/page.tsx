@@ -134,17 +134,17 @@ export default function BoothPage() {
     );
   }
 
-  // CAPTURE SCREEN
+  // CAPTURE SCREEN — white background acts as fill light for night mode
   if (step === "capture") {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen p-4" style={{ backgroundColor: "#FFFFFF" }}>
         <div className="max-w-xl mx-auto space-y-4">
           <div className="text-center">
-            <h2 className="font-display text-lg font-bold">
+            <h2 className="font-display text-lg font-bold text-black">
               Photo {capturedPhotos.length + 1} of {PHOTO_COUNT}
             </h2>
             {attendees.length > 0 && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-black/60">
                 {attendees.map((a) => a.name).join(", ")}
               </p>
             )}
@@ -154,6 +154,7 @@ export default function BoothPage() {
             onCapture={handleCapture}
             photoCount={PHOTO_COUNT}
             currentPhoto={capturedPhotos.length + 1}
+            autoStart
           />
 
           {/* Show captured thumbnails */}

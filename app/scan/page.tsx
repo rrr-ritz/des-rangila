@@ -6,13 +6,13 @@ import { QRScanner } from "@/components/scanner/QRScanner";
 import { ScanResult } from "@/components/scanner/ScanResult";
 import { OfflineBanner } from "@/components/scanner/OfflineBanner";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
-import { SelfieCapture } from "@/components/face/SelfieCapture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings, Volume2, VolumeX, XCircle, UserPlus, Check, Loader2, ArrowLeft } from "lucide-react";
+import { Settings, Volume2, VolumeX, XCircle, UserPlus, Loader2, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getAttendeeByQr, updateCachedAttendee } from "@/lib/offline/db";
 import { cn } from "@/lib/utils";
+import { QRCodeSVG } from "qrcode.react";
 
 interface StationInfo {
   id: string;
@@ -40,7 +40,7 @@ interface WalkInAttendee {
   checkedIn: boolean;
 }
 
-type WalkInStep = "form" | "creating" | "selfie" | "done";
+type WalkInStep = "form" | "creating" | "confirm";
 
 export default function ScanPage() {
   const { user, loading: authLoading } = useAuth();
@@ -67,7 +67,7 @@ export default function ScanPage() {
   const [walkInPhone, setWalkInPhone] = useState("");
   const [walkInError, setWalkInError] = useState("");
   const [walkInAttendee, setWalkInAttendee] = useState<WalkInAttendee | null>(null);
-  const [walkInSmsSent, setWalkInSmsSent] = useState(false);
+  const [walkInSmsStatus, setWalkInSmsStatus] = useState<"pending" | "sent" | "error" | null>(null);
   const [walkInAlreadyExists, setWalkInAlreadyExists] = useState(false);
 
   // Use a ref for pause state so the QRScanner callback doesn't need
@@ -135,24 +135,19 @@ export default function ScanPage() {
   }, [user]);
 
   // ---- SCAN HANDLER ----
-  // Flow: QR decoded → haptic (in QRScanner) → green border flash →
-  //       IndexedDB lookup (sub-50ms) → fallback to API → show result
   const handleScan = useCallback(
     async (payload: string) => {
       if (!user || !station) return;
       if (pausedRef.current) return;
 
-      // Pause immediately so we don't process another scan
       pausedRef.current = true;
 
-      // Green border flash — visible even in bright sunlight
       setBorderFlash("green");
       setTimeout(() => setBorderFlash(null), 600);
 
       try {
         let data: AttendeeInfo | undefined;
 
-        // 1. Try IndexedDB first — should resolve in under 50ms
         try {
           const cached = await getAttendeeByQr(payload);
           if (cached) {
@@ -162,7 +157,6 @@ export default function ScanPage() {
           // IndexedDB not available or empty
         }
 
-        // 2. Fallback to API if not found locally
         if (!data) {
           try {
             const token = await user.getIdToken();
@@ -173,15 +167,13 @@ export default function ScanPage() {
               data = await res.json();
             }
           } catch {
-            // Network error — we'll show not-found
+            // Network error
           }
         }
 
         if (data) {
           setAttendee(data);
-          // pausedRef stays true — will be reset in handleDismiss
         } else {
-          // Attendee not found — show brief error overlay
           setBorderFlash("red");
           setTimeout(() => setBorderFlash(null), 600);
           try {
@@ -196,7 +188,6 @@ export default function ScanPage() {
           }, 2000);
         }
       } catch {
-        // Unexpected error — resume scanning
         pausedRef.current = false;
       }
     },
@@ -228,8 +219,6 @@ export default function ScanPage() {
       throw new Error(data.error || "Redemption failed");
     }
 
-    // Update IndexedDB cache so subsequent scans of the same
-    // attendee show the correct stamp count (even offline).
     try {
       await updateCachedAttendee(attendee.id, {
         stampsCollected: [...(attendee.stampsCollected || []), station.id],
@@ -244,8 +233,6 @@ export default function ScanPage() {
   }
 
   // ---- DISMISS HANDLER ----
-  // Clears the result overlay → scanner immediately resumes.
-  // No tap required — success auto-dismisses after 3s.
   function handleDismiss() {
     setAttendee(null);
     pausedRef.current = false;
@@ -270,7 +257,7 @@ export default function ScanPage() {
     setWalkInPhone("");
     setWalkInError("");
     setWalkInAttendee(null);
-    setWalkInSmsSent(false);
+    setWalkInSmsStatus(null);
     setWalkInAlreadyExists(false);
     pausedRef.current = true;
   }
@@ -283,6 +270,7 @@ export default function ScanPage() {
     setWalkInPhone("");
     setWalkInError("");
     setWalkInAttendee(null);
+    setWalkInSmsStatus(null);
     pausedRef.current = false;
   }
 
@@ -292,14 +280,11 @@ export default function ScanPage() {
       setWalkInError("Name is required");
       return;
     }
-    const phoneDigits = walkInPhone.replace(/\D/g, "");
-    if (phoneDigits.length < 10) {
-      setWalkInError("Valid phone number is required");
-      return;
-    }
 
     setWalkInError("");
     setWalkInStep("creating");
+
+    const phoneProvided = walkInPhone.replace(/\D/g, "").length >= 10;
 
     try {
       const token = await user.getIdToken();
@@ -311,7 +296,7 @@ export default function ScanPage() {
         },
         body: JSON.stringify({
           name: walkInName.trim(),
-          phone: walkInPhone.trim(),
+          phone: phoneProvided ? walkInPhone.trim() : undefined,
           email: walkInEmail.trim() || undefined,
         }),
       });
@@ -325,23 +310,25 @@ export default function ScanPage() {
       }
 
       setWalkInAttendee(data.attendee);
-      setWalkInSmsSent(data.smsSent || false);
       setWalkInAlreadyExists(data.alreadyExists || false);
 
-      // Move to selfie capture step
-      setWalkInStep("selfie");
+      // SMS status
+      if (!phoneProvided) {
+        setWalkInSmsStatus(null);
+      } else if (data.smsSent) {
+        setWalkInSmsStatus("sent");
+      } else if (data.smsError) {
+        setWalkInSmsStatus("error");
+      } else {
+        setWalkInSmsStatus("pending");
+      }
+
+      // Go straight to confirmation screen
+      setWalkInStep("confirm");
     } catch {
       setWalkInError("Network error. Please try again.");
       setWalkInStep("form");
     }
-  }
-
-  function handleSelfieComplete() {
-    setWalkInStep("done");
-  }
-
-  function handleSelfieSkip() {
-    setWalkInStep("done");
   }
 
   // ---- LOADING / AUTH STATES ----
@@ -386,6 +373,10 @@ export default function ScanPage() {
 
   // ---- WALK-IN REGISTRATION UI ----
   if (showWalkIn) {
+    const passUrl = walkInAttendee
+      ? `https://des-rangila.vercel.app/pass/${walkInAttendee.qrPayload}`
+      : "";
+
     return (
       <div className="min-h-screen flex flex-col max-w-sm mx-auto">
         <header className="flex items-center gap-3 p-3 border-b">
@@ -403,7 +394,7 @@ export default function ScanPage() {
         </header>
 
         <div className="flex-1 p-4">
-          {/* Step 1: Name + Email Form */}
+          {/* Step 1: Name + Phone + Email Form */}
           {walkInStep === "form" && (
             <div className="space-y-4">
               <div className="space-y-2">
@@ -420,7 +411,7 @@ export default function ScanPage() {
               </div>
               <div className="space-y-2">
                 <label htmlFor="walkin-phone" className="text-sm font-medium">
-                  Phone Number
+                  Phone Number <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
                 <Input
                   id="walkin-phone"
@@ -471,62 +462,68 @@ export default function ScanPage() {
             </div>
           )}
 
-          {/* Step 3: Selfie Capture */}
-          {walkInStep === "selfie" && walkInAttendee && (
-            <div className="space-y-4">
+          {/* Step 3: Confirmation with QR Code */}
+          {walkInStep === "confirm" && walkInAttendee && (
+            <div className="space-y-6 text-center">
               {walkInAlreadyExists && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200 text-sm px-4 py-2 rounded-md">
-                  This email is already registered. Showing existing passport.
+                <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200 text-sm px-4 py-2 rounded-md text-left">
+                  This person is already registered. Showing existing passport.
                 </div>
               )}
 
-              <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
+              <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Passport created for</p>
-                <p className="font-semibold text-lg">{walkInAttendee.name}</p>
-                <p className="text-2xl font-mono font-bold text-primary tracking-[0.3em]">
+                <p className="text-xl font-semibold" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {walkInAttendee.name}
+                </p>
+              </div>
+
+              {/* QR Code — white background for max scan reliability */}
+              <div className="inline-block p-4 bg-white rounded-xl shadow-md">
+                <QRCodeSVG
+                  value={passUrl}
+                  size={250}
+                  level="M"
+                  includeMargin={false}
+                />
+              </div>
+
+              <p className="text-sm font-medium" style={{ color: "#483932" }}>
+                Scan this QR code to open your digital passport
+              </p>
+
+              {/* PIN */}
+              <div className="rounded-lg p-4" style={{ backgroundColor: "#FDF8F0" }}>
+                <p className="text-xs text-muted-foreground mb-1">Your PIN</p>
+                <p className="text-4xl font-mono font-bold tracking-[0.3em]" style={{ color: "#D4913B" }}>
                   {walkInAttendee.pin}
                 </p>
-                {walkInSmsSent && (
-                  <p className="text-xs text-green-600">
-                    Passport link texted to {walkInAttendee.phone}
-                  </p>
-                )}
               </div>
 
-              <SelfieCapture
-                attendeeId={walkInAttendee.id}
-                attendeeName={walkInAttendee.name}
-                onComplete={handleSelfieComplete}
-                onSkip={handleSelfieSkip}
-              />
-            </div>
-          )}
-
-          {/* Step 4: Done */}
-          {walkInStep === "done" && walkInAttendee && (
-            <div className="text-center py-12 space-y-6">
-              <Check className="h-16 w-16 mx-auto text-green-500" />
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold">All set!</h3>
-                <p className="text-sm text-muted-foreground">
-                  {walkInAttendee.name} is checked in and ready to go.
+              {/* SMS status */}
+              {walkInSmsStatus === "sent" && (
+                <p className="text-xs text-green-600">
+                  Passport link also texted to {walkInAttendee.phone}
                 </p>
-              </div>
-
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <p className="text-xs text-muted-foreground">PIN</p>
-                <p className="text-3xl font-mono font-bold text-primary tracking-[0.3em]">
-                  {walkInAttendee.pin}
+              )}
+              {walkInSmsStatus === "error" && (
+                <p className="text-xs text-amber-600">
+                  SMS delivery pending — use the QR code above
                 </p>
-                {walkInSmsSent && (
-                  <p className="text-xs text-green-600">
-                    Passport link texted to {walkInAttendee.phone}
-                  </p>
-                )}
-              </div>
+              )}
+              {walkInSmsStatus === "pending" && (
+                <p className="text-xs text-muted-foreground">
+                  Sending text message...
+                </p>
+              )}
 
-              <Button className="w-full" size="lg" onClick={closeWalkIn}>
-                Done — Back to Scanner
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={closeWalkIn}
+                style={{ backgroundColor: "#483932" }}
+              >
+                Next Attendee
               </Button>
             </div>
           )}

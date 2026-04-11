@@ -76,7 +76,7 @@ export async function PATCH(
   let smsSent = false;
   let smsError = false;
   if (updateData.phone && isSmsConfigured()) {
-    const passUrl = `https://desrangila.ritvik.it/pass/${params.id}`;
+    const passUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://des-rangila.vercel.app"}/pass/${data.qrPayload}`;
     try {
       const result = await sendPassSMS(updateData.phone as string, data.pin, passUrl);
       smsSent = result.success;

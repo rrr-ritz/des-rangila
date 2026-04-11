@@ -6,17 +6,18 @@ import { verifyAuth, AuthError } from "@/lib/auth-helpers";
 import { logAction } from "@/lib/audit";
 import { sendPassSMS, isSmsConfigured } from "@/lib/sms/twilio";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://des-rangila.vercel.app";
+
 /**
  * POST /api/attendees/walk-in
  * Register a walk-in attendee on the spot.
- * Accepts { name, phone, email? }, generates PIN + QR, creates Firestore doc,
- * sends SMS with PIN + passport link, and returns the created attendee.
+ * Accepts { name, phone?, email? }, generates PIN + QR, creates Firestore doc,
+ * optionally sends SMS, and returns the created attendee.
  * Requires volunteer or admin auth.
  */
 export async function POST(request: NextRequest) {
   let auth;
   try {
-    // Allow both volunteers and admins to register walk-ins
     auth = await verifyAuth(request, "volunteer");
   } catch (e) {
     if (e instanceof AuthError) {
@@ -36,42 +37,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!phone || typeof phone !== "string" || phone.trim().length < 10) {
-      return NextResponse.json(
-        { error: "Valid phone number is required" },
-        { status: 400 }
-      );
+    // Normalize phone if provided
+    let normalizedPhone = "";
+    if (phone && typeof phone === "string" && phone.trim().length >= 10) {
+      const digits = phone.replace(/\D/g, "");
+      normalizedPhone = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : phone.trim();
     }
-
-    // Normalize phone: strip non-digits, ensure +1 prefix for US numbers
-    const digits = phone.replace(/\D/g, "");
-    const normalizedPhone = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : phone.trim();
 
     const normalizedEmail = email ? String(email).trim().toLowerCase() : "";
 
-    // Check for duplicate phone
-    const existingSnapshot = await adminDb
-      .collection("attendees")
-      .where("phone", "==", normalizedPhone)
-      .limit(1)
-      .get();
+    // Check for duplicate by phone (only if phone provided) or by name
+    if (normalizedPhone) {
+      const existingSnapshot = await adminDb
+        .collection("attendees")
+        .where("phone", "==", normalizedPhone)
+        .limit(1)
+        .get();
 
-    if (!existingSnapshot.empty) {
-      // Return the existing attendee instead of creating a duplicate
-      const existingDoc = existingSnapshot.docs[0];
-      const existingData = existingDoc.data();
-      return NextResponse.json({
-        attendee: {
-          id: existingDoc.id,
-          name: existingData.name,
-          phone: existingData.phone,
-          email: existingData.email,
-          pin: existingData.pin,
-          qrPayload: existingData.qrPayload,
-          checkedIn: existingData.checkedIn,
-        },
-        alreadyExists: true,
-      });
+      if (!existingSnapshot.empty) {
+        const existingDoc = existingSnapshot.docs[0];
+        const existingData = existingDoc.data();
+        return NextResponse.json({
+          attendee: {
+            id: existingDoc.id,
+            name: existingData.name,
+            phone: existingData.phone || "",
+            email: existingData.email || "",
+            pin: existingData.pin,
+            qrPayload: existingData.qrPayload,
+            checkedIn: existingData.checkedIn,
+          },
+          alreadyExists: true,
+        });
+      }
     }
 
     // Collect existing PINs and QR payloads to ensure uniqueness
@@ -98,13 +96,12 @@ export async function POST(request: NextRequest) {
     const now = Timestamp.now();
 
     const ref = adminDb.collection("attendees").doc();
-    const attendeeData = {
+    const attendeeData: Record<string, unknown> = {
       id: ref.id,
       pin,
       qrPayload,
       name: name.trim(),
       email: normalizedEmail,
-      phone: normalizedPhone,
       checkedIn: true,
       checkedInAt: now,
       faceDescriptor: null,
@@ -117,6 +114,9 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     };
+    if (normalizedPhone) {
+      attendeeData.phone = normalizedPhone;
+    }
 
     await ref.set(attendeeData);
 
@@ -128,16 +128,16 @@ export async function POST(request: NextRequest) {
       actorRole: auth.volunteer?.role || "volunteer",
       targetId: ref.id,
       targetType: "attendee",
-      details: { name: name.trim(), phone: normalizedPhone },
+      details: { name: name.trim(), phone: normalizedPhone || undefined },
       severity: "info",
       notifyAdmins: false,
     });
 
-    // Send SMS with PIN + passport link
-    const passUrl = `https://desrangila.ritvik.it/pass/${ref.id}`;
+    // Send SMS in background if phone provided
+    const passUrl = `${APP_URL}/pass/${qrPayload}`;
     let smsSent = false;
     let smsError = false;
-    if (isSmsConfigured()) {
+    if (normalizedPhone && isSmsConfigured()) {
       try {
         const result = await sendPassSMS(normalizedPhone, pin, passUrl);
         smsSent = result.success;
@@ -147,7 +147,6 @@ export async function POST(request: NextRequest) {
           await ref.update({ smsSentAt: now });
         }
       } catch {
-        // SMS failure is non-critical — attendee is still registered
         smsError = true;
       }
     }

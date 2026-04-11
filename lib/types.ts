@@ -6,6 +6,7 @@ export type StationType =
   | "activity"
   | "food"
   | "both"
+  | "none"
   | "registration"
   | "photo-booth";
 export type WalletPassType = "apple" | "google" | "web";

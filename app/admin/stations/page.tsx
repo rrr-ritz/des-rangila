@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -20,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { RefreshCw, MapPin, Utensils, Camera, UserPlus } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import type { Station } from "@/lib/types";
 
@@ -35,26 +34,33 @@ interface VolunteerData {
   currentStationId: string | null;
 }
 
-const typeIcons: Record<string, React.ReactNode> = {
-  activity: <MapPin className="h-3.5 w-3.5" />,
-  food: <Utensils className="h-3.5 w-3.5" />,
-  both: <><MapPin className="h-3.5 w-3.5" /><Utensils className="h-3.5 w-3.5" /></>,
-  "photo-booth": <Camera className="h-3.5 w-3.5" />,
-  registration: <UserPlus className="h-3.5 w-3.5" />,
-};
+interface InventoryItem {
+  id: string;
+  stationId: string;
+  itemName: string;
+  initialCount: number;
+  remainingCount: number;
+}
 
-const typeBadgeVariant: Record<string, "default" | "secondary" | "outline"> = {
-  activity: "default",
-  food: "secondary",
-  both: "default",
-  "photo-booth": "outline",
-  registration: "outline",
-};
+function itemLabel(station: StationWithCounts): string {
+  if (station.type === "food" && station.foodItem) return station.foodItem;
+  if (station.type === "activity" && station.activityName) return station.activityName;
+  return "\u2014";
+}
+
+function itemEmoji(station: StationWithCounts): string {
+  if (station.type === "food") return "\uD83C\uDF7D";
+  if (station.type === "activity") return "\uD83C\uDFA8";
+  return "";
+}
+
+const STAMPABLE_TYPES = new Set(["food", "activity"]);
 
 export default function StationsPage() {
   const { user } = useAuth();
   const [stations, setStations] = useState<StationWithCounts[]>([]);
   const [volunteers, setVolunteers] = useState<VolunteerData[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [reassigning, setReassigning] = useState<string | null>(null);
 
@@ -64,9 +70,10 @@ export default function StationsPage() {
     try {
       const token = await user.getIdToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const [stationsRes, volunteersRes] = await Promise.all([
+      const [stationsRes, volunteersRes, inventoryRes] = await Promise.all([
         fetch("/api/admin/stats", { headers }),
         fetch("/api/volunteers", { headers }),
+        fetch("/api/inventory", { headers }),
       ]);
       if (stationsRes.ok) {
         const data = await stationsRes.json();
@@ -75,6 +82,10 @@ export default function StationsPage() {
       if (volunteersRes.ok) {
         const data = await volunteersRes.json();
         setVolunteers(data.volunteers || []);
+      }
+      if (inventoryRes.ok) {
+        const data = await inventoryRes.json();
+        setInventory(data.items || []);
       }
     } catch {
       // silently fail
@@ -120,14 +131,87 @@ export default function StationsPage() {
     }
   };
 
-  const activeCount = stations.filter((s) => s.isActive).length;
-
   function volunteersAtStation(stationId: string) {
     return volunteers.filter((v) => v.currentStationId === stationId);
   }
 
-  // Volunteers not assigned to any station
+  function inventoryForStation(stationId: string): InventoryItem | undefined {
+    return inventory.find((i) => i.stationId === stationId);
+  }
+
+  const stampableStations = stations.filter((s) => STAMPABLE_TYPES.has(s.type));
+  const otherStations = stations.filter((s) => !STAMPABLE_TYPES.has(s.type));
+  const activeCount = stations.filter((s) => s.isActive).length;
   const unassignedVolunteers = volunteers.filter((v) => !v.currentStationId);
+
+  function renderStationRow(station: StationWithCounts) {
+    const assigned = volunteersAtStation(station.id);
+    const inv = inventoryForStation(station.id);
+    const isStampable = STAMPABLE_TYPES.has(station.type);
+
+    return (
+      <TableRow key={station.id} className={!station.isActive ? "opacity-50" : ""}>
+        <TableCell className="font-mono text-xs py-2">
+          {station.tableNumber}
+        </TableCell>
+        <TableCell className="py-2">
+          <span className="font-medium text-sm">{station.name}</span>
+        </TableCell>
+        <TableCell className="py-2">
+          {isStampable ? (
+            <span className="text-sm">
+              {itemEmoji(station)} {itemLabel(station)}
+              {inv && (
+                <span className={`ml-1.5 text-xs font-mono ${
+                  inv.remainingCount === 0
+                    ? "text-red-600 font-bold"
+                    : inv.remainingCount <= inv.initialCount * 0.2
+                    ? "text-amber-600 font-semibold"
+                    : "text-muted-foreground"
+                }`}>
+                  {inv.remainingCount}/{inv.initialCount}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">{"\u2014"}</span>
+          )}
+        </TableCell>
+        <TableCell className="py-2">
+          {assigned.length === 0 ? (
+            <span className="text-amber-600 text-xs">None</span>
+          ) : (
+            <span className="text-xs">{assigned.map((v) => v.name).join(", ")}</span>
+          )}
+        </TableCell>
+        <TableCell className="py-2">
+          <Select
+            onValueChange={(volId) => reassignVolunteer(volId, station.id)}
+            disabled={reassigning !== null}
+          >
+            <SelectTrigger className="h-7 w-[120px] text-xs">
+              <SelectValue placeholder="+ Assign" />
+            </SelectTrigger>
+            <SelectContent>
+              {volunteers
+                .filter((v) => v.currentStationId !== station.id)
+                .map((v) => (
+                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                    {v.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </TableCell>
+        <TableCell className="text-center py-2">
+          <Switch
+            checked={station.isActive}
+            onCheckedChange={() => toggleStation(station.id)}
+          />
+        </TableCell>
+      </TableRow>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -135,10 +219,10 @@ export default function StationsPage() {
         <div>
           <h1 className="text-2xl font-bold">Stations</h1>
           <p className="text-sm text-muted-foreground">
-            {activeCount} of {stations.length} stations active
+            {activeCount} of {stations.length} active
             {unassignedVolunteers.length > 0 && (
               <span className="text-amber-600 ml-2">
-                ({unassignedVolunteers.length} unassigned volunteer{unassignedVolunteers.length !== 1 ? "s" : ""})
+                ({unassignedVolunteers.length} unassigned)
               </span>
             )}
           </p>
@@ -149,92 +233,65 @@ export default function StationsPage() {
         </Button>
       </div>
 
+      {/* Stampable stations */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">All Stations</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Cultural Stations ({stampableStations.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {loading ? (
             <div className="space-y-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-10 bg-muted animate-pulse rounded" />
               ))}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Food</TableHead>
+                  <TableHead className="w-10">#</TableHead>
+                  <TableHead>Station</TableHead>
+                  <TableHead>Item</TableHead>
                   <TableHead>Volunteers</TableHead>
                   <TableHead>Assign</TableHead>
-                  <TableHead className="text-center">Active</TableHead>
+                  <TableHead className="text-center w-16">Active</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stations.map((station) => {
-                  const assigned = volunteersAtStation(station.id);
-                  return (
-                    <TableRow key={station.id} className={!station.isActive ? "opacity-50" : ""}>
-                      <TableCell className="font-mono text-xs">
-                        {station.tableNumber}
-                      </TableCell>
-                      <TableCell className="font-medium">{station.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={typeBadgeVariant[station.type] || "outline"} className="gap-1 text-xs">
-                          {typeIcons[station.type]}
-                          {station.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {station.foodItem || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {assigned.length === 0 ? (
-                          <span className="text-amber-600 text-xs">None</span>
-                        ) : (
-                          <div className="space-y-0.5">
-                            {assigned.map((v) => (
-                              <div key={v.id} className="text-xs">{v.name}</div>
-                            ))}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          onValueChange={(volId) => reassignVolunteer(volId, station.id)}
-                          disabled={reassigning !== null}
-                        >
-                          <SelectTrigger className="h-8 w-[140px] text-xs">
-                            <SelectValue placeholder="+ Assign" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {volunteers
-                              .filter((v) => v.currentStationId !== station.id)
-                              .map((v) => (
-                                <SelectItem key={v.id} value={v.id} className="text-xs">
-                                  {v.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Switch
-                          checked={station.isActive}
-                          onCheckedChange={() => toggleStation(station.id)}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {stampableStations.map(renderStationRow)}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Non-stampable stations */}
+      {otherStations.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-muted-foreground">Other Stations</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {!loading && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">#</TableHead>
+                    <TableHead>Station</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Volunteers</TableHead>
+                    <TableHead>Assign</TableHead>
+                    <TableHead className="text-center w-16">Active</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {otherStations.map(renderStationRow)}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

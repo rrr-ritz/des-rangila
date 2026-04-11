@@ -29,26 +29,27 @@ interface AttendeeInfo {
 }
 
 // Hardcoded station list for offline fallback
-// Stations with food also have cultural activities ("both")
-// Activity-only stations have no food service
+// Each station is either food OR activity (never both)
+// "none" stations (Motion Cafe, Photo Booths) have no stamping or inventory
 const STATIONS: StationInfo[] = [
   { id: "registration", name: "Check-In", type: "registration", foodItem: null },
   { id: "jammu-kashmir", name: "Jammu & Kashmir + Ladakh", type: "activity", foodItem: null },
   { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand", type: "activity", foodItem: null },
-  { id: "punjab", name: "Punjab", type: "both", foodItem: "Paneer Tikka" },
+  { id: "punjab", name: "Punjab", type: "food", foodItem: "Paneer Tikka" },
   { id: "haryana-rajasthan", name: "Haryana + Rajasthan", type: "activity", foodItem: null },
   { id: "gujarat", name: "Gujarat", type: "activity", foodItem: null },
-  { id: "maharashtra", name: "Maharashtra", type: "both", foodItem: "Vada Pav" },
-  { id: "central-india", name: "Central India", type: "both", foodItem: "Chai Latte Samples" },
+  { id: "maharashtra", name: "Maharashtra", type: "food", foodItem: "Vada Pav" },
+  { id: "central-india", name: "Central India", type: "food", foodItem: "Chai Latte Samples" },
   { id: "odisha", name: "Odisha", type: "activity", foodItem: null },
   { id: "west-bengal", name: "West Bengal", type: "activity", foodItem: null },
-  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "both", foodItem: "Momos" },
-  { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "both", foodItem: "Biryani" },
-  { id: "karnataka", name: "Karnataka", type: "both", foodItem: "Idli" },
-  { id: "tamil-nadu", name: "Tamil Nadu", type: "both", foodItem: "Uthappam" },
+  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim", type: "food", foodItem: "Momos" },
+  { id: "andhra-telangana", name: "Andhra Pradesh + Telangana", type: "food", foodItem: "Biryani" },
+  { id: "karnataka", name: "Karnataka", type: "food", foodItem: "Idli" },
+  { id: "tamil-nadu", name: "Tamil Nadu", type: "food", foodItem: "Uthappam" },
   { id: "kerala", name: "Kerala", type: "activity", foodItem: null },
-  { id: "motion-cafe", name: "Motion Cafe", type: "food", foodItem: "Drinks" },
-  { id: "photo-booth", name: "Photo Booth", type: "photo-booth", foodItem: null },
+  { id: "motion-cafe", name: "Motion Cafe", type: "none", foodItem: null },
+  { id: "photo-booth-1", name: "Photo Booth 1", type: "none", foodItem: null },
+  { id: "photo-booth-2", name: "Photo Booth 2", type: "none", foodItem: null },
 ];
 
 export default function ScanPage() {

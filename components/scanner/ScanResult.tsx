@@ -173,31 +173,8 @@ export function ScanResult({
     );
   }
 
-  const canActivity = !hasVisited && (stationType === "activity" || stationType === "both");
-  const canFood = !hasVisited && !foodLimitReached && !!foodItem && (stationType === "food" || stationType === "both");
-
-  async function handleRedeemBoth() {
-    setRedeeming(true);
-    try {
-      // Redeem food first, then activity
-      await onRedeem(foodItem!);
-      await onRedeem("activity");
-      setResult({ type: "success", message: "Redeemed!" });
-      try { navigator.vibrate(200); } catch {}
-      if (soundEnabled) playSuccessBeep();
-      setTimeout(onDismiss, 3000);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Redemption failed";
-      if (msg.includes("Already redeemed")) {
-        setResult({ type: "warning", message: msg });
-      } else {
-        setResult({ type: "error", message: msg });
-      }
-      try { navigator.vibrate([50, 50, 50]); } catch {}
-    } finally {
-      setRedeeming(false);
-    }
-  }
+  const canActivity = !hasVisited && stationType === "activity";
+  const canFood = !hasVisited && !foodLimitReached && !!foodItem && stationType === "food";
 
   // === ATTENDEE INFO — Readable card with redeem actions ===
   return (
@@ -286,34 +263,19 @@ export function ScanResult({
 
       {/* Action buttons — 48px minimum height for outdoor use */}
       <div className="space-y-2">
-        {/* Both button — only for stations with both activity AND food available */}
-        {canActivity && canFood && (
-          <Button
-            className="w-full min-h-[48px] text-base font-semibold"
-            onClick={handleRedeemBoth}
-            disabled={redeeming}
-          >
-            {redeeming ? "Processing..." : "Redeem Both"}
-          </Button>
-        )}
-
-        {/* Food-only button */}
         {canFood && (
           <Button
             className="w-full min-h-[48px] text-base font-semibold"
-            variant={canActivity ? "outline" : "default"}
             onClick={() => handleRedeem(foodItem!)}
             disabled={redeeming}
           >
-            {redeeming ? "Processing..." : `Redeem Food`}
+            {redeeming ? "Processing..." : "Redeem Food"}
           </Button>
         )}
 
-        {/* Activity-only button */}
         {canActivity && (
           <Button
             className="w-full min-h-[48px] text-base font-semibold"
-            variant={canFood ? "outline" : "default"}
             onClick={() => handleRedeem("activity")}
             disabled={redeeming}
           >
@@ -324,6 +286,12 @@ export function ScanResult({
         {hasVisited && (
           <p className="text-center text-sm font-medium text-gray-400">
             Already visited this station
+          </p>
+        )}
+
+        {stationType === "none" && !hasVisited && (
+          <p className="text-center text-sm font-medium text-gray-400">
+            This station does not have stamps
           </p>
         )}
       </div>

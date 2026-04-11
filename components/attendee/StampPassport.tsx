@@ -18,13 +18,12 @@ const STATIONS = [
   { id: "karnataka", name: "Karnataka" },
   { id: "tamil-nadu", name: "TN" },
   { id: "kerala", name: "Kerala" },
-  { id: "motion-cafe", name: "Motion" },
 ];
 
 const TOTAL = STATIONS.length;
 
 // Deterministic rotation per station for the "hand-stamped" feel
-const ROTATIONS = [-2, 1, -1, 2, -3, 1, -2, 3, -1, 2, -2, 1, 3, -1, 2];
+const ROTATIONS = [-2, 1, -1, 2, -3, 1, -2, 3, -1, 2, -2, 1, 3, -1];
 
 interface StampPassportProps {
   stampsCollected: string[];

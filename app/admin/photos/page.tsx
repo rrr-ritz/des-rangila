@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Camera, Image as ImageIcon } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface PhotoData {
   id: string;
@@ -17,24 +18,52 @@ interface PhotoData {
 }
 
 export default function PhotosPage() {
+  const { user } = useAuth();
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoData | null>(null);
 
-  const fetchPhotos = useCallback(async () => {
-    setLoading(true);
-    // No dedicated admin photos API yet — show empty state for now
-    // In production this would query the photos collection
-    setPhotos([]);
-    setLoading(false);
-  }, []);
+  const fetchPhotos = useCallback(async (startAfter?: string) => {
+    if (!user) return;
+    if (!startAfter) setLoading(true);
+    else setLoadingMore(true);
+
+    try {
+      const token = await user.getIdToken();
+      const params = new URLSearchParams({ limit: "20" });
+      if (startAfter) params.set("startAfter", startAfter);
+
+      const res = await fetch(`/api/admin/photos?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (startAfter) {
+          setPhotos((prev) => [...prev, ...(data.photos || [])]);
+        } else {
+          setPhotos(data.photos || []);
+        }
+        setHasMore(data.hasMore || false);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchPhotos();
   }, [fetchPhotos]);
 
-  const totalPhotos = photos.length;
-  const boothPhotos = photos.filter((p) => p.photoType === "booth").length;
+  const loadMore = () => {
+    if (photos.length > 0) {
+      fetchPhotos(photos[photos.length - 1].id);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -42,22 +71,21 @@ export default function PhotosPage() {
         <div>
           <h1 className="text-2xl font-bold">Photos</h1>
           <p className="text-sm text-muted-foreground">
-            Manage photo booth and event photos
+            Photo booth gallery
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchPhotos}>
+        <Button variant="outline" size="sm" onClick={() => fetchPhotos()}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <Camera className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-2xl font-bold">{boothPhotos}</p>
+              <p className="text-2xl font-bold">{photos.length}{hasMore ? "+" : ""}</p>
               <p className="text-xs text-muted-foreground">Booth Photos</p>
             </div>
           </CardContent>
@@ -66,14 +94,13 @@ export default function PhotosPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <ImageIcon className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-2xl font-bold">{totalPhotos}</p>
+              <p className="text-2xl font-bold">{photos.length}{hasMore ? "+" : ""}</p>
               <p className="text-xs text-muted-foreground">Total Photos</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Photo grid */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">All Photos</CardTitle>
@@ -94,27 +121,41 @@ export default function PhotosPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {photos.map((photo) => (
-                <button
-                  key={photo.id}
-                  className="aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors relative"
-                  onClick={() => setSelectedPhoto(photo)}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.thumbnailUrl}
-                    alt="Event photo"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="absolute bottom-1 right-1">
-                    <Badge variant="secondary" className="text-[10px]">
-                      {photo.photoType}
-                    </Badge>
-                  </div>
-                </button>
-              ))}
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {photos.map((photo) => (
+                  <button
+                    key={photo.id}
+                    className="aspect-square rounded-lg overflow-hidden border hover:border-primary transition-colors relative"
+                    onClick={() => setSelectedPhoto(photo)}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.thumbnailUrl || photo.storageUrl}
+                      alt="Event photo"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute bottom-1 right-1">
+                      <Badge variant="secondary" className="text-[10px]">
+                        {photo.photoType}
+                      </Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {hasMore && (
+                <div className="text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? "Loading..." : "Load More"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

@@ -39,6 +39,13 @@ export async function GET(
     const doc = snapshot.docs[0];
     const attendee = doc.data();
 
+    if (attendee.deactivated) {
+      return NextResponse.json(
+        { error: "This passport has been deactivated." },
+        { status: 403 }
+      );
+    }
+
     const passData = {
       qrPayload: params.qr,
       name: attendee.name || "Attendee",

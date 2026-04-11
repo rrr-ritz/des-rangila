@@ -56,6 +56,13 @@ export async function GET(
   const doc = snapshot.docs[0];
   const data = doc.data();
 
+  if (data.deactivated) {
+    return NextResponse.json(
+      { error: "This passport has been deactivated." },
+      { status: 403 }
+    );
+  }
+
   // Return only non-sensitive fields for public PIN lookup
   return NextResponse.json({
     id: doc.id,

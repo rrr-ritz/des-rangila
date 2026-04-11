@@ -115,7 +115,13 @@ export default function AdminLayout({
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1" aria-label="Admin pages">
-            {navItems.map((item) => {
+            {navItems.filter((item) => {
+              // Hide Face Match for Dhruv
+              if (item.href === "/admin/face-recognition" && user.email === "dhruvsuri312@gmail.com") {
+                return false;
+              }
+              return true;
+            }).map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/admin" && pathname.startsWith(item.href));

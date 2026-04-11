@@ -25,6 +25,36 @@ interface VolunteerData {
   createdAt: { _seconds?: number; seconds?: number };
 }
 
+const STATION_NAMES: Record<string, string> = {
+  "registration": "Check-In",
+  "seven-sisters-sikkim": "Seven Sisters + Sikkim",
+  "punjab": "Punjab",
+  "west-bengal": "West Bengal",
+  "maharashtra": "Maharashtra",
+  "haryana-rajasthan": "Haryana + Rajasthan",
+  "himachal-uttarakhand": "Himachal + Uttarakhand",
+  "gujarat": "Gujarat",
+  "jammu-kashmir": "Jammu & Kashmir + Ladakh",
+  "motion-cafe": "Motion Cafe",
+  "central-india": "Central India",
+  "kerala": "Kerala",
+  "andhra-telangana": "AP + Telangana",
+  "karnataka": "Karnataka",
+  "odisha": "Odisha",
+  "tamil-nadu": "Tamil Nadu",
+  "photo-booth": "Photo Booth",
+};
+
+function formatPhone(e164: string): string {
+  const digits = e164.replace(/\D/g, "");
+  // Strip leading 1 (country code) if 11 digits
+  const local = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (local.length === 10) {
+    return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+  }
+  return e164;
+}
+
 export default function VolunteersPage() {
   const { user } = useAuth();
   const [volunteers, setVolunteers] = useState<VolunteerData[]>([]);
@@ -72,7 +102,6 @@ export default function VolunteersPage() {
         </Button>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
@@ -103,7 +132,6 @@ export default function VolunteersPage() {
         </Card>
       </div>
 
-      {/* Volunteers table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">All Volunteers</CardTitle>
@@ -117,7 +145,7 @@ export default function VolunteersPage() {
             </div>
           ) : volunteers.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No volunteers registered yet. Volunteers can register at /volunteer/register.
+              No volunteers registered yet.
             </p>
           ) : (
             <Table>
@@ -139,10 +167,13 @@ export default function VolunteersPage() {
                       ).toLocaleDateString()
                     : "—";
                   return (
-                    <TableRow key={vol.id}>
+                    <TableRow
+                      key={vol.id}
+                      className={!vol.currentStationId ? "bg-amber-50" : ""}
+                    >
                       <TableCell className="font-medium">{vol.name}</TableCell>
                       <TableCell className="text-sm font-mono">
-                        {vol.phone}
+                        {formatPhone(vol.phone)}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -153,7 +184,9 @@ export default function VolunteersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {vol.currentStationId || "Unassigned"}
+                        {vol.currentStationId
+                          ? STATION_NAMES[vol.currentStationId] || vol.currentStationId
+                          : <span className="text-amber-600 font-medium">Unassigned</span>}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge

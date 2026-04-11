@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb, adminAuth } from "@/lib/firebase/admin";
 import { Timestamp } from "firebase-admin/firestore";
+import { logAction } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -50,6 +51,19 @@ export async function POST(request: NextRequest) {
       // Link the pre-registered volunteer to this Firebase Auth UID
       await doc.ref.update({ uid });
       const data = doc.data();
+
+      await logAction({
+        action: "volunteer.linked",
+        actorId: uid,
+        actorName: data.name || "Volunteer",
+        actorRole: "volunteer",
+        targetId: doc.id,
+        targetType: "volunteer",
+        details: { phone: e164 },
+        severity: "info",
+        notifyAdmins: false,
+      });
+
       return NextResponse.json({
         success: true,
         volunteer: { id: doc.id, ...data, uid },
@@ -79,6 +93,18 @@ export async function POST(request: NextRequest) {
   };
 
   await ref.set(volunteer);
+
+  await logAction({
+    action: "volunteer.registered",
+    actorId: uid,
+    actorName: name,
+    actorRole: "volunteer",
+    targetId: ref.id,
+    targetType: "volunteer",
+    details: { phone },
+    severity: "info",
+    notifyAdmins: false,
+  });
 
   return NextResponse.json({ success: true, volunteer }, { status: 201 });
 }

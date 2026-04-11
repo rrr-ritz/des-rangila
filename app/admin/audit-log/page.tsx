@@ -20,6 +20,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { RefreshCw, Search } from "lucide-react";
 
 interface AuditEntry {
@@ -52,11 +54,59 @@ const actionLabels: Record<string, string> = {
 };
 
 export default function AuditLogPage() {
+  const { user } = useAuth();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAction, setFilterAction] = useState<string>("all");
   const [filterSeverity, setFilterSeverity] = useState<string>("all");
+  const [auditEnabled, setAuditEnabled] = useState(true);
+  const [togglingAudit, setTogglingAudit] = useState(false);
+
+  const isRitvik = user?.email === "ritzr2003@gmail.com";
+
+  // Load audit settings
+  useEffect(() => {
+    if (!user || !isRitvik) return;
+    async function loadSettings() {
+      try {
+        const token = await user!.getIdToken();
+        const res = await fetch("/api/admin/audit-settings", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAuditEnabled(data.enabled);
+        }
+      } catch {
+        // silently fail
+      }
+    }
+    loadSettings();
+  }, [user, isRitvik]);
+
+  const toggleAudit = async () => {
+    if (!user) return;
+    setTogglingAudit(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/audit-settings", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ enabled: !auditEnabled }),
+      });
+      if (res.ok) {
+        setAuditEnabled(!auditEnabled);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setTogglingAudit(false);
+    }
+  };
 
   const fetchAuditLog = useCallback(async () => {
     setLoading(true);
@@ -100,10 +150,22 @@ export default function AuditLogPage() {
             Complete event activity history
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAuditLog}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          {isRitvik && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Logging</span>
+              <Switch
+                checked={auditEnabled}
+                onCheckedChange={toggleAudit}
+                disabled={togglingAudit}
+              />
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={fetchAuditLog}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

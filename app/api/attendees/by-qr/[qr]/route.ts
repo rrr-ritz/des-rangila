@@ -26,5 +26,14 @@ export async function GET(
   }
 
   const doc = snapshot.docs[0];
-  return NextResponse.json({ id: doc.id, ...doc.data() });
+  const data = doc.data()!;
+
+  if (data.deactivated) {
+    return NextResponse.json(
+      { error: "This passport has been deactivated." },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json({ id: doc.id, ...data });
 }

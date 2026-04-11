@@ -29,6 +29,16 @@ export async function logAction({
   severity = "info",
   notifyAdmins = false,
 }: LogActionParams): Promise<string> {
+  // Check if audit logging is enabled
+  try {
+    const settingsDoc = await adminDb.collection("settings").doc("auditLog").get();
+    if (settingsDoc.exists && settingsDoc.data()?.enabled === false) {
+      return "";
+    }
+  } catch {
+    // If we can't check settings, log anyway
+  }
+
   const ref = adminDb.collection("audit_log").doc();
   await ref.set({
     id: ref.id,

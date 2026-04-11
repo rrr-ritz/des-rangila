@@ -103,7 +103,7 @@ export default function BoothPage() {
       <div className="min-h-screen bg-gradient-to-b from-primary/10 to-background flex items-center justify-center p-4">
         <div className="text-center space-y-8 max-w-md">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">
+            <h1 className="font-display text-4xl font-bold tracking-tight">
               Des Rangila
             </h1>
             <p className="text-lg text-muted-foreground mt-2">
@@ -145,7 +145,7 @@ export default function BoothPage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="space-y-6 text-center max-w-sm mx-auto">
           <div>
-            <h2 className="text-xl font-bold mb-2">How many photos?</h2>
+            <h2 className="font-display text-xl font-bold mb-2">How many photos?</h2>
             <p className="text-sm text-muted-foreground">
               Choose 1-4 photos for your strip
             </p>
@@ -180,7 +180,7 @@ export default function BoothPage() {
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-xl mx-auto space-y-4">
           <div className="text-center">
-            <h2 className="text-lg font-bold">
+            <h2 className="font-display text-lg font-bold">
               Photo {capturedPhotos.length + 1} of {photoCount}
             </h2>
             {attendees.length > 0 && (
@@ -221,7 +221,7 @@ export default function BoothPage() {
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-xl mx-auto space-y-4">
           <div className="text-center">
-            <h2 className="text-lg font-bold">Your Photo Strip</h2>
+            <h2 className="font-display text-lg font-bold">Your Photo Strip</h2>
           </div>
           <PhotoStrip
             photos={capturedPhotos}
@@ -240,7 +240,7 @@ export default function BoothPage() {
       <div className="text-center space-y-6 max-w-md">
         <div className="text-5xl">📸</div>
         <div>
-          <h2 className="text-2xl font-bold">Photos saved!</h2>
+          <h2 className="font-display text-2xl font-bold">Photos saved!</h2>
           <p className="text-muted-foreground mt-2">
             {attendees.length > 0
               ? "View your photos anytime at desrangila.app/me"

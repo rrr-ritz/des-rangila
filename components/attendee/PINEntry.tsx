@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Delete } from "lucide-react";
 
@@ -12,6 +12,11 @@ interface PINEntryProps {
 
 export function PINEntry({ onSubmit, loading, error }: PINEntryProps) {
   const [pin, setPin] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   function handleKey(digit: string) {
     if (pin.length < 4) {
@@ -21,18 +26,42 @@ export function PINEntry({ onSubmit, loading, error }: PINEntryProps) {
         onSubmit(newPin);
       }
     }
+    inputRef.current?.focus();
   }
 
   function handleDelete() {
     setPin((prev) => prev.slice(0, -1));
+    inputRef.current?.focus();
   }
 
   function handleClear() {
     setPin("");
+    inputRef.current?.focus();
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setPin(val);
+    if (val.length === 4) {
+      onSubmit(val);
+    }
   }
 
   return (
-    <div className="w-full max-w-xs mx-auto space-y-6" role="form" aria-label="PIN entry">
+    <div className="w-full max-w-xs mx-auto space-y-6 relative" role="form" aria-label="PIN entry">
+      {/* Hidden input for keyboard support */}
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        autoComplete="one-time-code"
+        className="opacity-0 absolute w-0 h-0"
+        value={pin}
+        onChange={handleInputChange}
+        disabled={loading}
+        aria-label="PIN input"
+      />
       {/* PIN display */}
       <div className="flex justify-center gap-2" aria-label={`PIN: ${pin.length} of 4 digits entered`}>
         {Array.from({ length: 4 }).map((_, i) => (

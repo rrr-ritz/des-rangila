@@ -195,10 +195,10 @@ export default function AttendeePortalPage() {
             }}
           >
             {/* Passport pages */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left page — ID */}
               <div
-                className="rounded-xl p-5 space-y-4 border"
+                className="rounded-xl p-6 space-y-4 border"
                 style={{
                   backgroundColor: "#FFFCF7",
                   borderColor: "#E8DFD0",
@@ -263,7 +263,7 @@ export default function AttendeePortalPage() {
 
               {/* Right page — Stamps */}
               <div
-                className="rounded-xl p-5 border"
+                className="rounded-xl p-6 border"
                 style={{
                   backgroundColor: "#FFFCF7",
                   borderColor: "#E8DFD0",
@@ -274,7 +274,7 @@ export default function AttendeePortalPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="grid grid-cols-2 gap-4 mt-6">
               <div className="bg-card border border-border rounded-xl p-4 text-center">
                 <p className="text-2xl font-medium text-[var(--color-primary)]">
                   {attendee.stampsCollected?.length || 0}

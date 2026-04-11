@@ -4,21 +4,21 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
 const STATIONS = [
-  { id: "jammu-kashmir", name: "J&K + Ladakh" },
-  { id: "himachal-uttarakhand", name: "Himachal + Uttarakhand" },
+  { id: "jammu-kashmir", name: "J&K" },
+  { id: "himachal-uttarakhand", name: "HP + UK" },
   { id: "punjab", name: "Punjab" },
-  { id: "haryana-rajasthan", name: "Haryana + Rajasthan" },
+  { id: "haryana-rajasthan", name: "HR + Raj" },
   { id: "gujarat", name: "Gujarat" },
   { id: "maharashtra", name: "Maharashtra" },
-  { id: "central-india", name: "Central India" },
+  { id: "central-india", name: "Central" },
   { id: "odisha", name: "Odisha" },
-  { id: "west-bengal", name: "West Bengal" },
-  { id: "seven-sisters-sikkim", name: "Seven Sisters + Sikkim" },
-  { id: "andhra-telangana", name: "AP + Telangana" },
+  { id: "west-bengal", name: "Bengal" },
+  { id: "seven-sisters-sikkim", name: "7 Sisters" },
+  { id: "andhra-telangana", name: "AP + TS" },
   { id: "karnataka", name: "Karnataka" },
-  { id: "tamil-nadu", name: "Tamil Nadu" },
+  { id: "tamil-nadu", name: "TN" },
   { id: "kerala", name: "Kerala" },
-  { id: "motion-cafe", name: "Motion Cafe" },
+  { id: "motion-cafe", name: "Motion" },
 ];
 
 const TOTAL = STATIONS.length;
@@ -52,14 +52,14 @@ export function StampPassport({ stampsCollected }: StampPassportProps) {
       </div>
 
       {/* Station grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
         {STATIONS.map((station, i) => {
           const isVisited = visited.has(station.id);
           return (
             <div
               key={station.id}
               className={cn(
-                "aspect-square rounded-lg flex flex-col items-center justify-center p-1 text-center transition-all",
+                "aspect-square rounded-xl flex flex-col items-center justify-center p-1.5 text-center overflow-hidden transition-all",
                 isVisited
                   ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)] border-2 border-[var(--color-primary)]"
                   : "bg-transparent text-muted-foreground border-2 border-dashed border-border"
@@ -69,7 +69,7 @@ export function StampPassport({ stampsCollected }: StampPassportProps) {
               {isVisited && (
                 <Check className="h-3.5 w-3.5 mb-0.5" style={{ color: 'var(--color-text-on-primary)' }} />
               )}
-              <span className="text-[9px] leading-tight font-medium">
+              <span className="text-[10px] leading-tight font-medium">
                 {station.name}
               </span>
             </div>

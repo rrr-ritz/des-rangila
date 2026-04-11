@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
   signInWithCustomToken,
-  type ConfirmationResult,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { signInAdmin } from "@/lib/firebase/auth";
@@ -22,9 +19,9 @@ export default function StaffPage() {
   // ---- Volunteer state ----
   const [volStep, setVolStep] = useState<VolunteerStep>("phone");
   const [volPhone, setVolPhone] = useState("");
-  const [volCode, setVolCode] = useState("");
+  // volCode removed — no SMS verification step
   const [volName, setVolName] = useState("");
-  const [volConfirmation, setVolConfirmation] = useState<ConfirmationResult | null>(null);
+  // volConfirmation removed — using custom tokens now, no SMS verification
   const [volLoading, setVolLoading] = useState(false);
   const [volError, setVolError] = useState("");
 
@@ -51,39 +48,20 @@ export default function StaffPage() {
       if (!auth) throw new Error("Firebase not configured");
       const e164Phone = formatE164(volPhone);
 
-      // Dev bypass: skip SMS entirely for test number
-      if (e164Phone === "+11111111111") {
-        try {
-          const res = await fetch("/api/dev-login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: "+11111111111" }),
-          });
-          if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || "Dev login API failed");
-          }
-          const { customToken } = await res.json();
-          await signInWithCustomToken(auth, customToken);
-          setVolStep("done");
-          setTimeout(() => router.push("/scan"), 1000);
-        } catch (err) {
-          setVolError(
-            `Dev login failed: ${err instanceof Error ? err.message : "Unknown error"}`
-          );
-        }
-        setVolLoading(false);
-        return;
+      // Use custom tokens for all volunteers (Firebase phone SMS is blocked)
+      const res = await fetch("/api/dev-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: e164Phone }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Volunteer not found with this phone number");
       }
-
-      if (!(window as unknown as Record<string, unknown>).recaptchaVerifier) {
-        (window as unknown as Record<string, unknown>).recaptchaVerifier =
-          new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
-      }
-      const verifier = (window as unknown as Record<string, unknown>).recaptchaVerifier as RecaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, e164Phone, verifier);
-      setVolConfirmation(result);
-      setVolStep("verify");
+      const { customToken } = await res.json();
+      await signInWithCustomToken(auth, customToken);
+      setVolStep("done");
+      setTimeout(() => router.push("/scan"), 1000);
     } catch (e) {
       setVolError(e instanceof Error ? e.message : "Failed to send code");
     } finally {
@@ -91,39 +69,7 @@ export default function StaffPage() {
     }
   }
 
-  async function handleVolVerifyCode() {
-    if (!volConfirmation) return;
-    setVolError("");
-    setVolLoading(true);
-    try {
-      await volConfirmation.confirm(volCode);
-
-      // Check if volunteer already registered (returning volunteer)
-      const auth = getFirebaseAuth();
-      if (auth?.currentUser) {
-        const token = await auth.currentUser.getIdToken();
-        const res = await fetch("/api/volunteers/register", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ name: "", phone: volPhone }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.existing) {
-            setVolStep("done");
-            setTimeout(() => router.push("/scan"), 1500);
-            return;
-          }
-        }
-      }
-
-      setVolStep("profile");
-    } catch {
-      setVolError("Invalid verification code. Please try again.");
-    } finally {
-      setVolLoading(false);
-    }
-  }
+  // SMS verification step removed — using custom tokens for all volunteers
 
   async function handleVolCreateProfile() {
     setVolError("");
@@ -215,27 +161,6 @@ export default function StaffPage() {
                     {volLoading ? "Sending..." : "Send Verification Code"}
                   </Button>
                   <div id="recaptcha-container" />
-                </div>
-              )}
-
-              {volStep === "verify" && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="vol-code">Verification Code</Label>
-                    <Input
-                      id="vol-code"
-                      type="text"
-                      placeholder="000000"
-                      maxLength={6}
-                      value={volCode}
-                      onChange={(e) => setVolCode(e.target.value)}
-                      className="text-center text-lg tracking-widest font-mono"
-                    />
-                  </div>
-                  {volError && <p className="text-sm text-destructive">{volError}</p>}
-                  <Button className="w-full" onClick={handleVolVerifyCode} disabled={volLoading || volCode.length !== 6}>
-                    {volLoading ? "Verifying..." : "Verify"}
-                  </Button>
                 </div>
               )}
 

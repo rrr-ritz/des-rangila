@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, RefreshCw, Loader2, ShieldCheck, AlertTriangle, Ban } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface MatchItem {
   id: string;
@@ -62,14 +63,19 @@ function getStatusBadge(status: string) {
 }
 
 export function MatchReview({ refreshTrigger, statusFilter = "pending" }: MatchReviewProps) {
+  const { user } = useAuth();
   const [matches, setMatches] = useState<MatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchMatches = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/photos/face-match/queue?status=${statusFilter}&limit=50`);
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/photos/face-match/queue?status=${statusFilter}&limit=50`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setMatches(data.matches || []);
@@ -79,18 +85,23 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending" }: MatchR
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, user]);
 
   useEffect(() => {
     fetchMatches();
   }, [fetchMatches, refreshTrigger]);
 
   const handleAction = async (matchId: string, action: "approve" | "reject") => {
+    if (!user) return;
     setActionLoading(matchId);
     try {
+      const token = await user.getIdToken();
       const res = await fetch(`/api/photos/face-match/${matchId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ action }),
       });
       if (res.ok) {

@@ -40,6 +40,7 @@ except ImportError:
 try:
     import firebase_admin
     from firebase_admin import credentials, firestore, storage
+    from google.cloud.firestore_v1.base_query import FieldFilter
 except ImportError:
     print("ERROR: firebase-admin not installed. Run: pip install -r requirements-daemon.txt")
     sys.exit(1)
@@ -222,8 +223,7 @@ def fetch_unmatched_photos(db, limit=BATCH_SIZE):
     """Fetch booth photos that haven't been face-match processed."""
     query = (
         db.collection("photos")
-        .where("photoType", "==", "booth")
-        .order_by("uploadedAt", direction=firestore.Query.DESCENDING)
+        .where(filter=FieldFilter("photoType", "==", "booth"))
         .limit(limit)
     )
 
@@ -357,11 +357,9 @@ def process_backlog(db, face_app, selfie_cache):
     total = 0
 
     while not shutdown_requested:
-        # Fetch in batches — can't use limit=None with order_by efficiently
         query = (
             db.collection("photos")
-            .where("photoType", "==", "booth")
-            .order_by("uploadedAt", direction=firestore.Query.DESCENDING)
+            .where(filter=FieldFilter("photoType", "==", "booth"))
             .limit(200)
         )
         docs = list(query.stream())

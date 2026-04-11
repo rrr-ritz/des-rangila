@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signInAnonymously,
   type ConfirmationResult,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
@@ -49,6 +50,25 @@ export default function StaffPage() {
       const auth = getFirebaseAuth();
       if (!auth) throw new Error("Firebase not configured");
       const e164Phone = formatE164(volPhone);
+
+      // Dev bypass: skip SMS for test number, sign in anonymously
+      if (e164Phone === "+11111111111") {
+        const anonResult = await signInAnonymously(auth);
+        if (anonResult.user) {
+          const token = await anonResult.user.getIdToken();
+          // Link anonymous user to the dev volunteer doc
+          await fetch("/api/volunteers/register", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ name: "Dev Test", phone: "+11111111111" }),
+          });
+        }
+        setVolStep("done");
+        setTimeout(() => router.push("/scan"), 1500);
+        setVolLoading(false);
+        return;
+      }
+
       if (!(window as unknown as Record<string, unknown>).recaptchaVerifier) {
         (window as unknown as Record<string, unknown>).recaptchaVerifier =
           new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });

@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
   const doc = snapshot.docs[0];
   const data = doc.data();
 
+  if (data.isActive === false) {
+    return NextResponse.json(
+      { error: "Your account has been deactivated. Please contact an admin." },
+      { status: 403 }
+    );
+  }
+
   return NextResponse.json({
     id: doc.id,
     name: data.name,

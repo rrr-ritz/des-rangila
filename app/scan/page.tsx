@@ -235,8 +235,34 @@ export default function ScanPage() {
 
   if (!user) return null;
 
-  // No station assigned
+  // No station assigned — show picker for dev account, error for others
   if (!station) {
+    const isDevAccount = volunteerName === "Dev Test";
+
+    if (isDevAccount) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <div className="text-center space-y-4 max-w-sm w-full">
+            <h2 className="font-display text-lg font-medium text-[var(--color-primary)]">
+              Dev Mode — Pick a Station
+            </h2>
+            <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+              {STATIONS.map((s) => (
+                <button
+                  key={s.id}
+                  className="w-full text-left px-4 py-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
+                  onClick={() => setStation(s)}
+                >
+                  <span className="font-medium">{s.name}</span>
+                  {s.foodItem && <span className="text-muted-foreground ml-2">· {s.foodItem}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-3 max-w-sm">

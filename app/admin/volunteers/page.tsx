@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw, Users, UserCheck, UserX } from "lucide-react";
+import { RefreshCw, Users, UserCheck, UserX, Ban, RotateCcw, Loader2 } from "lucide-react";
 
 interface VolunteerData {
   id: string;
@@ -59,6 +59,7 @@ export default function VolunteersPage() {
   const { user } = useAuth();
   const [volunteers, setVolunteers] = useState<VolunteerData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchVolunteers = useCallback(async () => {
     if (!user) return;
@@ -82,6 +83,33 @@ export default function VolunteersPage() {
   useEffect(() => {
     fetchVolunteers();
   }, [fetchVolunteers]);
+
+  const toggleVolunteer = async (vol: VolunteerData) => {
+    if (!user) return;
+    setTogglingId(vol.id);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/volunteers/${vol.id}/deactivate`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isActive: !vol.isActive }),
+      });
+      if (res.ok) {
+        setVolunteers((prev) =>
+          prev.map((v) =>
+            v.id === vol.id ? { ...v, isActive: !v.isActive } : v
+          )
+        );
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const totalVolunteers = volunteers.length;
   const activeVolunteers = volunteers.filter((v) => v.isActive).length;
@@ -157,6 +185,7 @@ export default function VolunteersPage() {
                   <TableHead>Station</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead>Joined</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -169,7 +198,7 @@ export default function VolunteersPage() {
                   return (
                     <TableRow
                       key={vol.id}
-                      className={!vol.currentStationId ? "bg-amber-50" : ""}
+                      className={`${!vol.currentStationId ? "bg-amber-50" : ""} ${!vol.isActive ? "opacity-50" : ""}`}
                     >
                       <TableCell className="font-medium">{vol.name}</TableCell>
                       <TableCell className="text-sm font-mono">
@@ -198,6 +227,22 @@ export default function VolunteersPage() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {joinedDate}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <button
+                          className={`inline-flex items-center justify-center h-8 w-8 rounded-md hover:bg-muted transition-colors ${vol.isActive ? "text-red-600 hover:text-red-700" : "text-green-600 hover:text-green-700"}`}
+                          disabled={togglingId === vol.id}
+                          onClick={() => toggleVolunteer(vol)}
+                          title={vol.isActive ? "Deactivate" : "Reactivate"}
+                        >
+                          {togglingId === vol.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : vol.isActive ? (
+                            <Ban className="h-3.5 w-3.5" />
+                          ) : (
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          )}
+                        </button>
                       </TableCell>
                     </TableRow>
                   );

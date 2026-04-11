@@ -46,7 +46,6 @@ export default function CheckInPage() {
 
   // Walk-in state
   const [walkInName, setWalkInName] = useState("");
-  const [email, setEmail] = useState("");
 
   // Shared state
   const [phone, setPhone] = useState("");
@@ -108,7 +107,6 @@ export default function CheckInPage() {
     setStep("form");
     setNameQuery("");
     setWalkInName("");
-    setEmail("");
     setPhone("");
     setError("");
     setAttendee(null);
@@ -225,7 +223,6 @@ export default function CheckInPage() {
         body: JSON.stringify({
           name: walkInName.trim(),
           phone: phone.trim(),
-          email: email.trim() || undefined,
         }),
       });
 
@@ -391,19 +388,6 @@ export default function CheckInPage() {
               onChange={(e) => setPhone(e.target.value)}
             />
           </div>
-          <div className="space-y-2">
-            <label htmlFor="walkin-email" className="text-sm font-medium">
-              Email <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <Input
-              id="walkin-email"
-              type="email"
-              placeholder="email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button className="w-full" size="lg" onClick={handleWalkIn}>

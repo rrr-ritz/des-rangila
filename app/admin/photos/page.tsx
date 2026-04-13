@@ -71,7 +71,7 @@ export default function PhotosPage() {
         <div>
           <h1 className="text-2xl font-bold">Photos</h1>
           <p className="text-sm text-muted-foreground">
-            Photo booth gallery
+            Event photo gallery
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchPhotos()}>
@@ -80,13 +80,22 @@ export default function PhotosPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <Camera className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-2xl font-bold">{photos.length}{hasMore ? "+" : ""}</p>
+              <p className="text-2xl font-bold">{photos.filter((p) => p.photoType === "booth").length}</p>
               <p className="text-xs text-muted-foreground">Booth Photos</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <Camera className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-2xl font-bold">{photos.filter((p) => p.photoType === "photographer").length}</p>
+              <p className="text-xs text-muted-foreground">Photographer</p>
             </div>
           </CardContent>
         </Card>
@@ -94,7 +103,7 @@ export default function PhotosPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <ImageIcon className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-2xl font-bold">{photos.length}{hasMore ? "+" : ""}</p>
+              <p className="text-2xl font-bold">{photos.length}</p>
               <p className="text-xs text-muted-foreground">Total Photos</p>
             </div>
           </CardContent>

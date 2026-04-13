@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,8 +93,9 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
       if (res.ok) {
         const data = await res.json();
         setMatches(data.matches || []);
-        if (data.stats && onStatsUpdate) {
-          onStatsUpdate(data.stats);
+        if (data.stats) {
+          statsRef.current = data.stats;
+          if (onStatsUpdate) onStatsUpdate(data.stats);
         }
       }
     } catch {
@@ -108,8 +109,21 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
     fetchMatches();
   }, [fetchMatches, refreshTrigger]);
 
+  // Local stats for optimistic updates
+  const statsRef = useRef({ autoApproved: 0, pending: 0, rejected: 0, approved: 0 });
+
+  const updateStatsAfterAction = useCallback((oldStatus: string, action: "approve" | "reject") => {
+    const s = statsRef.current;
+    if (oldStatus === "auto-approved") s.autoApproved = Math.max(0, s.autoApproved - 1);
+    else if (oldStatus === "pending") s.pending = Math.max(0, s.pending - 1);
+    if (action === "approve") s.approved++;
+    else s.rejected++;
+    if (onStatsUpdate) onStatsUpdate({ ...s });
+  }, [onStatsUpdate]);
+
   const handleAction = async (matchId: string, action: "approve" | "reject") => {
     if (!user) return;
+    const match = matches.find((m) => m.id === matchId);
     setActionLoading(matchId);
     try {
       const token = await user.getIdToken();
@@ -122,7 +136,10 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
         body: JSON.stringify({ action }),
       });
       if (res.ok) {
-        fetchMatches();
+        // Remove card locally (preserves scroll position)
+        setMatches((prev) => prev.filter((m) => m.id !== matchId));
+        // Update stats optimistically
+        if (match) updateStatsAfterAction(match.status, action);
       }
     } catch {
       // silently fail
@@ -133,10 +150,11 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
 
   const handleBulkAction = async (action: "approve" | "reject") => {
     if (!user) return;
-    for (const match of matches) {
+    const token = await user.getIdToken();
+    const currentMatches = [...matches];
+    for (const match of currentMatches) {
       setActionLoading(match.id);
       try {
-        const token = await user.getIdToken();
         await fetch(`/api/photos/face-match/${match.id}`, {
           method: "PATCH",
           headers: {
@@ -145,12 +163,13 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
           },
           body: JSON.stringify({ action }),
         });
+        setMatches((prev) => prev.filter((m) => m.id !== match.id));
+        updateStatsAfterAction(match.status, action);
       } catch {
         // continue to next
       }
       setActionLoading(null);
     }
-    fetchMatches();
   };
 
   if (loading) {
@@ -214,90 +233,81 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
         {matches.map((match) => (
           <Card key={match.id} className="overflow-hidden">
             <CardContent className="p-3">
-              <div className="flex gap-3 items-start">
-                {/* Side-by-side photos — scale with viewport */}
-                <div className="flex gap-2 shrink-0">
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Photo</p>
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 rounded-lg overflow-hidden bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={match.photoUrl}
-                        alt="Matched photo"
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
+              {/* Header: name, confidence, status, actions */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <p className="font-semibold text-sm">{match.attendeeName}</p>
+                  <div className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold ${confidenceBg(match.confidence)} ${confidenceColor(match.confidence)}`}>
+                    {match.confidence.toFixed(3)}
                   </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Selfie</p>
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 rounded-lg overflow-hidden bg-muted">
-                      {match.selfieUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={match.selfieUrl}
-                          alt={`${match.attendeeName} selfie`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
+                  {statusBadge(match.status)}
+                </div>
+                {showActions && (match.status === "pending" || match.status === "auto-approved") && (
+                  <div className="flex gap-1.5">
+                    {match.status === "pending" && (
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleAction(match.id, "approve")}
+                        disabled={actionLoading === match.id}
+                      >
+                        {actionLoading === match.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Check className="h-3 w-3 mr-1" />
+                        )}
+                        Approve
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant={match.status === "auto-approved" ? "destructive" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => handleAction(match.id, "reject")}
+                      disabled={actionLoading === match.id}
+                    >
+                      {actionLoading === match.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                          No selfie
-                        </div>
+                        <X className="h-3 w-3 mr-1" />
                       )}
-                    </div>
+                      {match.status === "auto-approved" ? "Revoke" : "Reject"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Side-by-side photos — full width, natural aspect ratio */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-0.5">
+                  <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Photo</p>
+                  <div className="rounded-lg overflow-hidden bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={match.photoUrl}
+                      alt="Matched photo"
+                      className="w-full h-auto object-contain"
+                      loading="lazy"
+                    />
                   </div>
                 </div>
-
-                {/* Match details + actions */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                  <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold text-sm">{match.attendeeName}</p>
-                      {statusBadge(match.status)}
-                    </div>
-                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-bold ${confidenceBg(match.confidence)} ${confidenceColor(match.confidence)}`}>
-                      {match.confidence.toFixed(3)}
-                    </div>
+                <div className="space-y-0.5">
+                  <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Selfie</p>
+                  <div className="rounded-lg overflow-hidden bg-muted">
+                    {match.selfieUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={match.selfieUrl}
+                        alt={`${match.attendeeName} selfie`}
+                        className="w-full h-auto object-contain"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="aspect-square flex items-center justify-center text-muted-foreground text-xs">
+                        No selfie
+                      </div>
+                    )}
                   </div>
-
-                  {showActions && (
-                    <div className="flex gap-2 mt-2">
-                      {(match.status === "pending" || match.status === "auto-approved") && (
-                        <>
-                          {match.status === "pending" && (
-                            <Button
-                              size="sm"
-                              className="h-7 text-xs"
-                              onClick={() => handleAction(match.id, "approve")}
-                              disabled={actionLoading === match.id}
-                            >
-                              {actionLoading === match.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                              ) : (
-                                <Check className="h-3 w-3 mr-1" />
-                              )}
-                              Approve
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant={match.status === "auto-approved" ? "destructive" : "outline"}
-                            className="h-7 text-xs"
-                            onClick={() => handleAction(match.id, "reject")}
-                            disabled={actionLoading === match.id}
-                          >
-                            {actionLoading === match.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <X className="h-3 w-3 mr-1" />
-                            )}
-                            {match.status === "auto-approved" ? "Revoke" : "Reject"}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </CardContent>

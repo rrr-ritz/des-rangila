@@ -12,48 +12,16 @@ export async function GET(request: NextRequest) {
     throw e;
   }
 
-  const { searchParams } = new URL(request.url);
-  const limit = Math.min(parseInt(searchParams.get("limit") || "500"), 500);
-  const startAfter = searchParams.get("startAfter");
+  // Fetch all photos, sort in JS (no orderBy to avoid index issues)
+  const snapshot = await adminDb.collection("photos").get();
 
-  try {
-    // Try filtered query first (requires composite index)
-    let query = adminDb
-      .collection("photos")
-      .orderBy("uploadedAt", "desc")
-      .limit(limit + 1);
+  const photos = snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => {
+      const aT = (a as Record<string, unknown>).uploadedAt as { _seconds?: number; seconds?: number } | undefined;
+      const bT = (b as Record<string, unknown>).uploadedAt as { _seconds?: number; seconds?: number } | undefined;
+      return (bT?._seconds || bT?.seconds || 0) - (aT?._seconds || aT?.seconds || 0);
+    });
 
-    if (startAfter) {
-      const startDoc = await adminDb.collection("photos").doc(startAfter).get();
-      if (startDoc.exists) {
-        query = query.startAfter(startDoc);
-      }
-    }
-
-    const snapshot = await query.get();
-    const docs = snapshot.docs;
-    const hasMore = docs.length > limit;
-    const photos = docs.slice(0, limit).map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    return NextResponse.json({ photos, hasMore });
-  } catch (error) {
-    // Fallback: if ordering by uploadedAt fails (missing index),
-    // try without ordering
-    console.error("Photos query error (trying fallback):", error);
-
-    const snapshot = await adminDb
-      .collection("photos")
-      .limit(limit)
-      .get();
-
-    const photos = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    return NextResponse.json({ photos, hasMore: false });
-  }
+  return NextResponse.json({ photos, hasMore: false });
 }

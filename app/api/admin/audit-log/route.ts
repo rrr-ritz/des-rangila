@@ -15,12 +15,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");
   const severity = searchParams.get("severity");
-  const limit = Math.min(parseInt(searchParams.get("limit") || "5000"), 5000);
 
-  // Fetch without orderBy/where to avoid composite index requirements; filter + sort in JS.
+  // Fetch all entries, filter + sort in JS (no orderBy to avoid index issues)
   const snapshot = await adminDb
     .collection("audit_log")
-    .limit(limit)
     .get();
 
   let entries = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));

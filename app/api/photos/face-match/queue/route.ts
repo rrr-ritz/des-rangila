@@ -4,9 +4,9 @@ import { verifyAuth, AuthError } from "@/lib/auth-helpers";
 
 /**
  * GET /api/photos/face-match/queue
- * Get pending face match suggestions for admin review.
+ * Get face match suggestions for admin review.
  * Enriches each match with the attendee's selfie URL for side-by-side comparison.
- * Query params: status (pending|approved|rejected|all), limit
+ * Query params: status (pending|approved|rejected|all)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,27 +22,38 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "pending";
 
-    let query: FirebaseFirestore.Query = adminDb.collection("face_match_queue");
+    // Single fetch of all docs — compute stats + filter in JS
+    const snapshot = await adminDb.collection("face_match_queue").get();
 
-    if (status !== "all") {
-      query = query.where("status", "==", status);
-    }
-
-    const snapshot = await query.get();
-
-    // Collect unique attendee IDs to batch-fetch selfie URLs
+    const stats = { autoApproved: 0, pending: 0, rejected: 0, approved: 0 };
     const attendeeIds = new Set<string>();
-    const rawMatches = snapshot.docs.map((doc) => {
+    const allDocs = snapshot.docs.map((doc) => {
       const data = doc.data();
-      if (data.attendeeId) attendeeIds.add(data.attendeeId);
+      const s = data.status as string;
+      if (s === "auto-approved") stats.autoApproved++;
+      else if (s === "pending") stats.pending++;
+      else if (s === "rejected") stats.rejected++;
+      else if (s === "approved") stats.approved++;
+      if (data.attendeeId) attendeeIds.add(data.attendeeId as string);
       return { id: doc.id, ...data };
     });
 
-    // Batch-fetch attendee docs for selfie URLs
+    // Filter by requested status
+    const filtered = status === "all"
+      ? allDocs
+      : allDocs.filter((m) => (m as Record<string, unknown>).status === status);
+
+    // Batch-fetch attendee selfie URLs (only for visible matches)
+    const visibleAttendeeIds = new Set<string>();
+    filtered.forEach((m) => {
+      const aid = (m as Record<string, unknown>).attendeeId as string;
+      if (aid) visibleAttendeeIds.add(aid);
+    });
+
     const selfieMap: Record<string, string> = {};
-    if (attendeeIds.size > 0) {
+    if (visibleAttendeeIds.size > 0) {
       const attendeeDocs = await Promise.all(
-        Array.from(attendeeIds).map((id) =>
+        Array.from(visibleAttendeeIds).map((id) =>
           adminDb.collection("attendees").doc(id).get()
         )
       );
@@ -56,8 +67,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Enrich matches with selfie URLs and sort by confidence desc
-    const matches = rawMatches
+    // Enrich and sort by confidence descending
+    const matches = filtered
       .map((m) => ({
         ...m,
         selfieUrl: selfieMap[(m as Record<string, unknown>).attendeeId as string] || null,
@@ -67,17 +78,6 @@ export async function GET(request: NextRequest) {
         const bConf = (b as Record<string, unknown>).confidence as number || 0;
         return bConf - aConf;
       });
-
-    // Compute stats for the header
-    const allDocs = await adminDb.collection("face_match_queue").get();
-    const stats = { autoApproved: 0, pending: 0, rejected: 0, approved: 0 };
-    allDocs.docs.forEach((doc) => {
-      const s = doc.data().status as string;
-      if (s === "auto-approved") stats.autoApproved++;
-      else if (s === "pending") stats.pending++;
-      else if (s === "rejected") stats.rejected++;
-      else if (s === "approved") stats.approved++;
-    });
 
     return NextResponse.json({ matches, total: matches.length, stats });
   } catch (error) {

@@ -47,8 +47,12 @@ except ImportError:
 
 
 # ── Configuration ───────────────────────────────────────────────────────────
-AUTO_APPROVE_THRESHOLD = 0.35
-REVIEW_THRESHOLD = 0.2
+AUTO_APPROVE_THRESHOLD = 0.55
+REVIEW_THRESHOLD = 0.20
+MIN_DET_SCORE = 0.7
+MIN_GAP = 0.10
+NOISE_THRESHOLD = 0.35
+MAX_NOISE_HITS = 28
 POLL_INTERVAL = 30          # seconds between polls
 SELFIE_REFRESH_INTERVAL = 300  # seconds between selfie cache refreshes
 MAX_RETRY_ATTEMPTS = 3
@@ -274,20 +278,32 @@ def process_photo(photo_doc, db, face_app, selfie_cache):
         logger.info(f"  Frame {frame_idx}: {len(faces)} face(s) detected")
 
         for face in faces:
-            best_attendee = None
-            best_sim = -1.0
-
-            for attendee_id, selfie_data in selfie_cache.embeddings.items():
-                sim = cosine_similarity(face.embedding, selfie_data["embedding"])
-                if sim > best_sim:
-                    best_sim = sim
-                    best_attendee = (attendee_id, selfie_data["name"])
-
-            if best_sim < REVIEW_THRESHOLD:
-                logger.info(f"    No match (best: {best_attendee[1] if best_attendee else 'N/A'} at {best_sim:.3f})")
+            # Filter: skip low-confidence detections
+            if face.det_score < MIN_DET_SCORE:
                 continue
 
-            attendee_id, attendee_name = best_attendee
+            # Compute all similarities for noise detection + gap check
+            all_sims = []
+            for attendee_id, selfie_data in selfie_cache.embeddings.items():
+                sim = cosine_similarity(face.embedding, selfie_data["embedding"])
+                all_sims.append((sim, attendee_id, selfie_data["name"]))
+            all_sims.sort(key=lambda x: -x[0])
+
+            # Noise detection: skip faces that match too many gallery entries
+            raw_sims = np.array([s for s, _, _ in all_sims])
+            if np.sum(raw_sims > NOISE_THRESHOLD) > MAX_NOISE_HITS:
+                logger.info(f"    Skipped face (noise — {int(np.sum(raw_sims > NOISE_THRESHOLD))} gallery hits)")
+                continue
+
+            best_sim, best_aid, best_name = all_sims[0]
+            second_sim = all_sims[1][0] if len(all_sims) > 1 else 0.0
+            gap = best_sim - second_sim
+
+            if best_sim < REVIEW_THRESHOLD:
+                logger.info(f"    No match (best: {best_name} at {best_sim:.3f})")
+                continue
+
+            attendee_id, attendee_name = best_aid, best_name
             bbox = face.bbox.astype(int)
             bounding_box = {
                 "x": int(bbox[0]),
@@ -296,10 +312,13 @@ def process_photo(photo_doc, db, face_app, selfie_cache):
                 "height": int(bbox[3] - bbox[1]),
             }
 
-            if best_sim >= AUTO_APPROVE_THRESHOLD:
+            if best_sim >= AUTO_APPROVE_THRESHOLD and gap >= MIN_GAP:
                 status = "auto-approved"
                 matched_attendee_ids.add(attendee_id)
-                logger.info(f"    → {attendee_name} (sim: {best_sim:.3f}) auto-approved ✓")
+                logger.info(f"    → {attendee_name} (sim: {best_sim:.3f}, gap: {gap:.3f}) auto-approved ✓")
+            elif best_sim >= AUTO_APPROVE_THRESHOLD:
+                status = "pending"
+                logger.info(f"    → {attendee_name} (sim: {best_sim:.3f}, gap: {gap:.3f}) ambiguous ⚠")
             else:
                 status = "pending"
                 logger.info(f"    → {attendee_name} (sim: {best_sim:.3f}) needs review ⚠")

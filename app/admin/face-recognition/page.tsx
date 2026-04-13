@@ -9,9 +9,9 @@ import { Upload, UserCheck, ScanFace, ShieldCheck, AlertTriangle, List } from "l
 
 export default function FaceRecognitionPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [stats, setStats] = useState({ autoApproved: 0, pending: 0, rejected: 0, approved: 0 });
 
   const handleBatchComplete = () => {
-    // Trigger a refresh of the match review
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -20,24 +20,31 @@ export default function FaceRecognitionPage() {
       <div>
         <h1 className="text-2xl font-bold">Face Recognition</h1>
         <p className="text-sm text-muted-foreground">
-          Upload photographer photos and match faces to attendees
+          Match photographer photos to attendee selfies
         </p>
       </div>
 
-      {/* Info card */}
+      {/* Stats bar — compact, info-blue style */}
       <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20">
-        <CardContent className="p-4 flex gap-3">
-          <ScanFace className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-          <div className="text-sm space-y-1">
-            <p className="font-medium text-blue-900 dark:text-blue-100">
-              How it works
-            </p>
-            <p className="text-blue-700 dark:text-blue-300">
-              After the event, run the InsightFace matching script to process photographer photos
-              against attendee selfies. High-confidence matches (&gt;0.3 similarity) are
-              auto-approved. Borderline matches (0.2–0.3) need manual review below.
-              You can also upload photos directly for browser-based matching.
-            </p>
+        <CardContent className="p-3 flex items-center gap-6">
+          <ScanFace className="h-5 w-5 text-blue-600 shrink-0" />
+          <div className="flex gap-6 text-sm">
+            <div>
+              <span className="font-bold text-green-700 dark:text-green-400">{stats.autoApproved}</span>
+              <span className="text-muted-foreground ml-1">auto-approved</span>
+            </div>
+            <div>
+              <span className="font-bold text-amber-700 dark:text-amber-400">{stats.pending}</span>
+              <span className="text-muted-foreground ml-1">needs review</span>
+            </div>
+            <div>
+              <span className="font-bold text-blue-700 dark:text-blue-400">{stats.approved}</span>
+              <span className="text-muted-foreground ml-1">approved</span>
+            </div>
+            <div>
+              <span className="font-bold text-muted-foreground">{stats.rejected}</span>
+              <span className="text-muted-foreground ml-1">rejected</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -73,16 +80,17 @@ export default function FaceRecognitionPage() {
 
             <TabsContent value="pending">
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base">Pending Review</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Borderline matches (0.2–0.3 similarity) that need human verification
+                  <p className="text-xs text-muted-foreground">
+                    Compare the photographer photo against the attendee selfie. Approve if they match.
                   </p>
                 </CardHeader>
                 <CardContent>
                   <MatchReview
                     refreshTrigger={refreshTrigger}
                     statusFilter="pending"
+                    onStatsUpdate={setStats}
                   />
                 </CardContent>
               </Card>
@@ -90,16 +98,17 @@ export default function FaceRecognitionPage() {
 
             <TabsContent value="auto-approved">
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Auto-Approved Matches</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    High-confidence matches (&gt;0.3 similarity) automatically linked to attendee galleries. Revoke if incorrect.
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Auto-Approved</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    High-confidence matches (&gt;0.55 similarity, clear gap from second-best). Revoke if incorrect.
                   </p>
                 </CardHeader>
                 <CardContent>
                   <MatchReview
                     refreshTrigger={refreshTrigger}
                     statusFilter="auto-approved"
+                    onStatsUpdate={setStats}
                   />
                 </CardContent>
               </Card>
@@ -107,16 +116,14 @@ export default function FaceRecognitionPage() {
 
             <TabsContent value="all">
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base">All Matches</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Complete audit view of all face match results
-                  </p>
                 </CardHeader>
                 <CardContent>
                   <MatchReview
                     refreshTrigger={refreshTrigger}
                     statusFilter="all"
+                    onStatsUpdate={setStats}
                   />
                 </CardContent>
               </Card>

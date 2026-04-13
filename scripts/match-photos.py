@@ -48,8 +48,12 @@ except ImportError:
 
 # ── Constants ────────────────────────────────────────────────────────────────
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
-AUTO_APPROVE_THRESHOLD = 0.35  # Cosine similarity above this → auto-approved
-REVIEW_THRESHOLD = 0.2         # Between this and AUTO_APPROVE → pending review
+AUTO_APPROVE_THRESHOLD = 0.55  # Cosine similarity above this → auto-approved
+REVIEW_THRESHOLD = 0.20        # Between this and AUTO_APPROVE → pending review
+MIN_DET_SCORE = 0.7            # Minimum face detection confidence
+MIN_GAP = 0.10                 # Best match must beat second-best by this margin
+NOISE_THRESHOLD = 0.35         # For noise detection
+MAX_NOISE_HITS = 28            # If face matches >28 gallery entries above NOISE_THRESHOLD, skip it
 STORAGE_BUCKET = None          # Set from Firebase config
 
 
@@ -281,25 +285,43 @@ def main():
             continue
 
         for i, face in enumerate(faces):
-            best_attendee = None
-            best_sim = -1.0
+            # Filter: skip low-confidence detections
+            if face.det_score < MIN_DET_SCORE:
+                print(f"    Face {i + 1}: skipped (det_score {face.det_score:.2f} < {MIN_DET_SCORE})")
+                continue
 
+            # Compute all similarities for noise detection + gap check
+            all_sims = []
             for selfie in selfie_embeddings:
                 sim = cosine_similarity(face.embedding, selfie["embedding"])
-                if sim > best_sim:
-                    best_sim = sim
-                    best_attendee = selfie
+                all_sims.append((sim, selfie))
+            all_sims.sort(key=lambda x: -x[0])
 
-            if best_sim >= AUTO_APPROVE_THRESHOLD:
+            # Noise detection: if face matches too many gallery entries, skip it
+            raw_sims = np.array([s for s, _ in all_sims])
+            if np.sum(raw_sims > NOISE_THRESHOLD) > MAX_NOISE_HITS:
+                print(f"    Face {i + 1}: skipped (noise — {int(np.sum(raw_sims > NOISE_THRESHOLD))} gallery hits)")
+                continue
+
+            best_sim, best_attendee = all_sims[0]
+            second_sim = all_sims[1][0] if len(all_sims) > 1 else 0.0
+            gap = best_sim - second_sim
+
+            if best_sim >= AUTO_APPROVE_THRESHOLD and gap >= MIN_GAP:
                 status = "auto-approved"
                 total_auto_approved += 1
                 print(f"    Face {i + 1}: {best_attendee['name']} "
-                      f"(similarity: {best_sim:.3f}) → auto-approved ✓")
+                      f"(sim: {best_sim:.3f}, gap: {gap:.3f}) → auto-approved ✓")
+            elif best_sim >= AUTO_APPROVE_THRESHOLD and gap < MIN_GAP:
+                status = "pending"
+                total_pending += 1
+                print(f"    Face {i + 1}: {best_attendee['name']} "
+                      f"(sim: {best_sim:.3f}, gap: {gap:.3f}) → ambiguous, needs review ⚠")
             elif best_sim >= REVIEW_THRESHOLD:
                 status = "pending"
                 total_pending += 1
                 print(f"    Face {i + 1}: {best_attendee['name']} "
-                      f"(similarity: {best_sim:.3f}) → needs review ⚠")
+                      f"(sim: {best_sim:.3f}) → needs review ⚠")
             else:
                 total_unmatched += 1
                 print(f"    Face {i + 1}: No match "

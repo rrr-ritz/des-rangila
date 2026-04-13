@@ -109,13 +109,17 @@ export default function AuditLogPage() {
   };
 
   const fetchAuditLog = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "100" });
+      const token = await user.getIdToken();
+      const params = new URLSearchParams({ limit: "500" });
       if (filterAction !== "all") params.set("action", filterAction);
       if (filterSeverity !== "all") params.set("severity", filterSeverity);
 
-      const res = await fetch(`/api/admin/audit-log?${params}`);
+      const res = await fetch(`/api/admin/audit-log?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setEntries(data.entries || []);
@@ -125,7 +129,7 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterAction, filterSeverity]);
+  }, [user, filterAction, filterSeverity]);
 
   useEffect(() => {
     fetchAuditLog();

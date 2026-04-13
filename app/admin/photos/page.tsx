@@ -32,7 +32,7 @@ export default function PhotosPage() {
 
     try {
       const token = await user.getIdToken();
-      const params = new URLSearchParams({ limit: "20" });
+      const params = new URLSearchParams({ limit: "500" });
       if (startAfter) params.set("startAfter", startAfter);
 
       const res = await fetch(`/api/admin/photos?${params}`, {

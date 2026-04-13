@@ -48,7 +48,7 @@ except ImportError:
 
 # ── Constants ────────────────────────────────────────────────────────────────
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
-AUTO_APPROVE_THRESHOLD = 0.3   # Cosine similarity above this → auto-approved
+AUTO_APPROVE_THRESHOLD = 0.35  # Cosine similarity above this → auto-approved
 REVIEW_THRESHOLD = 0.2         # Between this and AUTO_APPROVE → pending review
 STORAGE_BUCKET = None          # Set from Firebase config
 

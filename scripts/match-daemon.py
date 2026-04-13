@@ -47,7 +47,7 @@ except ImportError:
 
 
 # ── Configuration ───────────────────────────────────────────────────────────
-AUTO_APPROVE_THRESHOLD = 0.3
+AUTO_APPROVE_THRESHOLD = 0.35
 REVIEW_THRESHOLD = 0.2
 POLL_INTERVAL = 30          # seconds between polls
 SELFIE_REFRESH_INTERVAL = 300  # seconds between selfie cache refreshes

@@ -113,7 +113,7 @@ export default function AuditLogPage() {
     setLoading(true);
     try {
       const token = await user.getIdToken();
-      const params = new URLSearchParams({ limit: "500" });
+      const params = new URLSearchParams({ limit: "5000" });
       if (filterAction !== "all") params.set("action", filterAction);
       if (filterSeverity !== "all") params.set("severity", filterSeverity);
 

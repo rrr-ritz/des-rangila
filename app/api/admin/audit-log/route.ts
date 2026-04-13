@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");
   const severity = searchParams.get("severity");
-  const limit = Math.min(parseInt(searchParams.get("limit") || "500"), 2000);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "5000"), 5000);
 
   // Fetch without orderBy/where to avoid composite index requirements; filter + sort in JS.
   const snapshot = await adminDb

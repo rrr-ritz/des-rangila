@@ -18,17 +18,13 @@ interface InventoryGaugeProps {
 
 function getColor(percent: number): string {
   if (percent > 50) return "bg-green-500";
-  if (percent > 25) return "bg-yellow-500";
-  if (percent > 10) return "bg-orange-500";
-  if (percent > 0) return "bg-red-500";
+  if (percent > 0) return "bg-yellow-500";
   return "bg-gray-900";
 }
 
 function getTextColor(percent: number): string {
   if (percent > 50) return "text-green-700";
-  if (percent > 25) return "text-yellow-700";
-  if (percent > 10) return "text-orange-700";
-  if (percent > 0) return "text-red-700";
+  if (percent > 0) return "text-yellow-700";
   return "text-gray-900";
 }
 

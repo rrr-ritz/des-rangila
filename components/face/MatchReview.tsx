@@ -122,7 +122,7 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
         body: JSON.stringify({ action }),
       });
       if (res.ok) {
-        setMatches((prev) => prev.filter((m) => m.id !== matchId));
+        fetchMatches();
       }
     } catch {
       // silently fail
@@ -131,16 +131,26 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
     }
   };
 
-  const handleApproveAll = async () => {
+  const handleBulkAction = async (action: "approve" | "reject") => {
+    if (!user) return;
     for (const match of matches) {
-      await handleAction(match.id, "approve");
+      setActionLoading(match.id);
+      try {
+        const token = await user.getIdToken();
+        await fetch(`/api/photos/face-match/${match.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action }),
+        });
+      } catch {
+        // continue to next
+      }
+      setActionLoading(null);
     }
-  };
-
-  const handleRejectAll = async () => {
-    for (const match of matches) {
-      await handleAction(match.id, "reject");
-    }
+    fetchMatches();
   };
 
   if (loading) {
@@ -187,11 +197,11 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
           </Button>
           {statusFilter === "pending" && matches.length > 1 && (
             <>
-              <Button size="sm" onClick={handleApproveAll}>
+              <Button size="sm" onClick={() => handleBulkAction("approve")}>
                 <Check className="h-4 w-4 mr-2" />
                 Approve All
               </Button>
-              <Button size="sm" variant="destructive" onClick={handleRejectAll}>
+              <Button size="sm" variant="destructive" onClick={() => handleBulkAction("reject")}>
                 <X className="h-4 w-4 mr-2" />
                 Reject All
               </Button>
@@ -200,17 +210,16 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
         </div>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         {matches.map((match) => (
           <Card key={match.id} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex gap-4">
-                {/* Side-by-side photos */}
-                <div className="flex gap-3 shrink-0">
-                  {/* Photographer photo */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Photo</p>
-                    <div className="w-40 h-40 rounded-lg overflow-hidden bg-muted">
+            <CardContent className="p-3">
+              <div className="flex gap-3 items-start">
+                {/* Side-by-side photos — scale with viewport */}
+                <div className="flex gap-2 shrink-0">
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Photo</p>
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 rounded-lg overflow-hidden bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={match.photoUrl}
@@ -220,11 +229,9 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
                       />
                     </div>
                   </div>
-
-                  {/* Attendee selfie */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Selfie</p>
-                    <div className="w-40 h-40 rounded-lg overflow-hidden bg-muted">
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wider">Selfie</p>
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 rounded-lg overflow-hidden bg-muted">
                       {match.selfieUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -243,26 +250,25 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
                 </div>
 
                 {/* Match details + actions */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
-                  <div className="space-y-2">
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                  <div className="space-y-1.5">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold text-sm">{match.attendeeName}</p>
                       {statusBadge(match.status)}
                     </div>
-
-                    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-mono font-bold ${confidenceBg(match.confidence)} ${confidenceColor(match.confidence)}`}>
+                    <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-bold ${confidenceBg(match.confidence)} ${confidenceColor(match.confidence)}`}>
                       {match.confidence.toFixed(3)}
                     </div>
                   </div>
 
                   {showActions && (
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex gap-2 mt-2">
                       {(match.status === "pending" || match.status === "auto-approved") && (
                         <>
                           {match.status === "pending" && (
                             <Button
                               size="sm"
-                              className="h-8"
+                              className="h-7 text-xs"
                               onClick={() => handleAction(match.id, "approve")}
                               disabled={actionLoading === match.id}
                             >
@@ -277,7 +283,7 @@ export function MatchReview({ refreshTrigger, statusFilter = "pending", onStatsU
                           <Button
                             size="sm"
                             variant={match.status === "auto-approved" ? "destructive" : "outline"}
-                            className="h-8"
+                            className="h-7 text-xs"
                             onClick={() => handleAction(match.id, "reject")}
                             disabled={actionLoading === match.id}
                           >

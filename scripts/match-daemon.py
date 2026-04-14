@@ -478,12 +478,16 @@ def main():
     if not selfie_cache.embeddings:
         logger.warning("No selfie embeddings found — will retry on refresh")
 
+    one_shot = "--one-shot" in sys.argv
+    if one_shot:
+        logger.info("Running in one-shot mode (backlog only, no poll loop)")
+
     try:
         # Process any backlog first
         process_backlog(db, face_app, selfie_cache)
 
-        # Enter main polling loop
-        if not shutdown_requested:
+        # Enter main polling loop unless one-shot mode
+        if not shutdown_requested and not one_shot:
             poll_loop(db, bucket, face_app, selfie_cache)
 
     finally:

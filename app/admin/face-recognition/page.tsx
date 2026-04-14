@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BatchUploader } from "@/components/face/BatchUploader";
 import { MatchReview } from "@/components/face/MatchReview";
-import { Upload, UserCheck, ScanFace, ShieldCheck, AlertTriangle, List } from "lucide-react";
+import { AttendeePreview } from "@/components/face/AttendeePreview";
+import { Upload, UserCheck, ScanFace, ShieldCheck, AlertTriangle, List, Users } from "lucide-react";
 
 export default function FaceRecognitionPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -54,6 +55,10 @@ export default function FaceRecognitionPage() {
           <TabsTrigger value="review" className="gap-2">
             <UserCheck className="h-4 w-4" />
             Review Matches
+          </TabsTrigger>
+          <TabsTrigger value="preview" className="gap-2">
+            <Users className="h-4 w-4" />
+            Attendee Preview
           </TabsTrigger>
           <TabsTrigger value="upload" className="gap-2">
             <Upload className="h-4 w-4" />
@@ -129,6 +134,18 @@ export default function FaceRecognitionPage() {
               </Card>
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="preview">
+          <div className="space-y-2">
+            <div>
+              <h2 className="text-base font-semibold">Final Review — Attendee Gallery</h2>
+              <p className="text-xs text-muted-foreground">
+                Spot-check each attendee&apos;s final photo set before delivery. Remove any photos that don&apos;t belong.
+              </p>
+            </div>
+            <AttendeePreview />
+          </div>
         </TabsContent>
 
         <TabsContent value="upload">

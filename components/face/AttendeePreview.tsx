@@ -230,7 +230,7 @@ export function AttendeePreview() {
                 <div className="rounded-lg overflow-hidden bg-muted border border-border">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={photo.thumbnailUrl || photo.storageUrl}
+                    src={photo.storageUrl || photo.thumbnailUrl}
                     alt="Matched photo"
                     className="w-full h-auto object-contain"
                     style={{ minHeight: 400 }}
